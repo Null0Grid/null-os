@@ -2,7 +2,7 @@
 # Runs inside the image during build. Applies Null OS branding, font,
 # shell and desktop defaults. Values come from /etc/null-os-release,
 # which build.sh generates from null-os.conf.
-set -e
+set -ex
 . /etc/null-os-release
 
 # ---- os-release (diverted so base-files upgrades don't overwrite it) ----

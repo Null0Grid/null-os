@@ -35,12 +35,17 @@ jobs:
           path: build.log
       - name: Publish build log to the build-logs branch
         if: failure()
+        shell: bash
         run: |
-          apt-get install -y -qq git >/dev/null
-          mkdir -p /tmp/logs && cp build.log /tmp/logs/ 2>/dev/null || true
-          grep -nE '^(E:|W: |P: Begin|ERROR)|Unable to locate|no installation candidate|Traceback|Error' build.log | tail -80 > /tmp/logs/errors.txt || true
-          tail -300 build.log > /tmp/logs/tail.txt || true
-          while read -r line; do echo "::error::$line"; done < <(tail -15 /tmp/logs/errors.txt)
+          set +e
+          mkdir -p /tmp/logs
+          cp build.log /tmp/logs/ 2>/dev/null
+          grep -nE '^(E:|P: Begin|ERROR)|Unable to locate|no installation candidate|Traceback|[Ee]rror' build.log | tail -80 > /tmp/logs/errors.txt
+          tail -300 build.log > /tmp/logs/tail.txt
+          # Annotations are readable through the API even when log downloads aren't
+          tail -6 /tmp/logs/errors.txt | while IFS= read -r line; do echo "::error title=build-error::${line:0:900}"; done
+          tail -4 /tmp/logs/tail.txt | while IFS= read -r line; do echo "::warning title=build-tail::${line:0:900}"; done
+          apt-get install -y -qq git >/dev/null 2>&1 || (apt-get update -qq && apt-get install -y -qq git >/dev/null)
           cd /tmp/logs
           git init -q -b build-logs
           git config user.name "github-actions[bot]"
