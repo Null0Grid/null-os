@@ -25,7 +25,10 @@ NEW_FAMILY = "Null Mono"
 
 def patch(src, dst):
     font = TTFont(src)
-    upm = font["head"].unitsPerEm
+    # Decompile glyph-indexed tables before the glyph order changes.
+    for t in ("glyf", "hmtx", "gvar", "cmap"):
+        if t in font:
+            font[t]
     adv = font["hmtx"]["zero"][0] if "zero" in font["hmtx"].metrics else font["hmtx"].metrics[font.getGlyphOrder()[1]][0]
 
     # Scale the 600-unit design to this font's cell width.

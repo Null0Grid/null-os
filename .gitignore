@@ -12,3 +12,4 @@ config/common
 config/source
 config/includes.chroot/etc/remix-release
 config/package-lists/desktop.list.chroot
+__pycache__/
