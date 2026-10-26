@@ -10,6 +10,6 @@ config/bootstrap
 config/chroot
 config/common
 config/source
-config/includes.chroot/etc/remix-release
+config/includes.chroot/etc/null-os-release
 config/package-lists/desktop.list.chroot
 __pycache__/

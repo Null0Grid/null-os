@@ -1,7 +1,7 @@
 #!/bin/sh
 # Called by `lb config`. Generates the live-build configuration.
 set -e
-. ./remix.conf
+. ./null-os.conf
 
 lb config noauto \
   --distribution "$DEBIAN_SUITE" \
@@ -17,5 +17,5 @@ lb config noauto \
   --iso-application "$DISTRO_NAME" \
   --iso-volume "$(echo "$DISTRO_ID" | tr a-z A-Z)_$DISTRO_VERSION" \
   --iso-publisher "$DISTRO_NAME" \
-  --bootappend-live "boot=live components hostname=$DISTRO_ID username=user live-config.user-default-groups=audio,cdrom,dip,floppy,video,plugdev,netdev,sudo,docker quiet" \
+  --bootappend-live "boot=live components hostname=$DISTRO_HOSTNAME username=user live-config.user-default-groups=audio,cdrom,dip,floppy,video,plugdev,netdev,sudo,docker persistence quiet" \
   "$@"

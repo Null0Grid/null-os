@@ -1,5 +1,5 @@
 #!/bin/sh
-# Quick system summary
+# Null OS system summary
 . /etc/os-release
 echo "$PRETTY_NAME"
 echo "Host:    $(hostname)   Kernel: $(uname -r)"

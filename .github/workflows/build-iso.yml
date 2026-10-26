@@ -1,4 +1,4 @@
-name: Build ISO
+name: Build Null OS
 
 on:
   push:
@@ -14,22 +14,59 @@ jobs:
       options: --privileged
     steps:
       - uses: actions/checkout@v4
-      - name: Build
+      - name: Build ISO
         run: ./build.sh
       - name: Upload ISO
         uses: actions/upload-artifact@v4
         with:
-          name: remix-iso
+          name: null-os-iso
           path: |
             *.iso
             *.sha256
           retention-days: 14
+          compression-level: 0
       - name: Upload build log on failure
         if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: build-log
           path: build.log
+
+  screenshots:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: null-os-iso
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Install QEMU
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq qemu-system-x86 python3-pil
+      - name: Boot ISO and take screenshots
+        run: python3 tools/vm-screenshots.py *.iso shots
+      - name: Upload screenshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshots
+          path: shots/*.png
+      - name: Publish screenshots to the screenshots branch
+        run: |
+          cd shots
+          git init -q -b screenshots
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          printf '# Null OS screenshots\n\nFrom build %s (%s)\n\n' "${GITHUB_SHA::7}" "$(date -u +%F)" > README.md
+          for f in *.png; do printf '### %s\n![%s](%s)\n\n' "${f%.png}" "$f" "$f" >> README.md; done
+          git add -A
+          git commit -q -m "Screenshots from ${GITHUB_SHA::7}"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" screenshots
 
   release:
     if: startsWith(github.ref, 'refs/tags/v')
@@ -40,7 +77,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: remix-iso
+          name: null-os-iso
       - uses: softprops/action-gh-release@v2
         with:
           files: |

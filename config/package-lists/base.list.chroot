@@ -48,3 +48,10 @@ firmware-realtek
 firmware-iwlwifi
 amd64-microcode
 intel-microcode
+# Shell and fonts (Null OS)
+zsh
+zsh-autosuggestions
+zsh-syntax-highlighting
+fontconfig
+fonts-jetbrains-mono
+python3-fonttools

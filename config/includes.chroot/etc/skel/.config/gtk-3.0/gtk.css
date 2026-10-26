@@ -1,0 +1,8 @@
+@define-color theme_selected_bg_color #00e5ff;
+@define-color theme_selected_fg_color #0a0a0f;
+@define-color theme_bg_color #121821;
+@define-color theme_base_color #0a0a0f;
+@define-color theme_fg_color #c9d4e3;
+@define-color theme_text_color #c9d4e3;
+@define-color borders #1c2633;
+selection, *:selected { background-color: #00e5ff; color: #0a0a0f; }

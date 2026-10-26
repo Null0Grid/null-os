@@ -1,64 +1,73 @@
-# Debian Remix
+# Null OS
 
-A Debian 13 (trixie) remix built with `live-build`. It produces one hybrid ISO that boots as a live system and also contains the Debian installer. It stays 100% compatible with Debian: no packages are modified, so security updates come straight from Debian.
+A Debian 13 (trixie) remix built for a USB stick: a light XFCE desktop in the Neon Lab style, zsh with a Kali-style two-line prompt, and a network engineer's toolkit preinstalled. It's still 100% Debian underneath, with no modified packages, so security updates come straight from Debian.
+
+```
+┌──(luc⦻null)-[~/homelab]-[main]
+└─$
+```
+*(The real prompt uses the Null mark, a ring with two parallel slashes, from the bundled Null Mono font. Over SSH or on the text console it falls back to `@`.)*
+
+Screenshots from the latest build are on the [`screenshots` branch](../../tree/screenshots).
 
 ## What's in it
 
-- **Base:** Debian trixie, amd64, `main contrib non-free non-free-firmware`, firmware and microcode for real hardware
-- **Network toolkit:** nmap, tcpdump, tshark, iperf3, mtr, dnsutils, lldpd, ethtool, nftables, wireguard-tools, arp-scan, ipcalc, snmp, minicom and picocom for console cables
-- **Ops:** Docker plus Compose, SSH (root login disabled), chrony, unattended security upgrades, tmux, btop, smartmontools
-- **Branding:** custom `os-release` (diverted so upgrades don't overwrite it), login banner, MOTD, and a `remix-info` command
-- **Installer:** a text-mode Debian installer with a partial preseed. Locale, timezone and repos are pre-answered, but **disk partitioning is always manual**.
-- **Optional:** set `DESKTOP="1"` for XFCE, Firefox, Wireshark and Remmina
+- **Desktop:** XFCE with Adwaita-dark, Papirus icons and Neon Lab accents. It includes Firefox ESR, Thunar, Wireshark, Remmina and NetworkManager.
+- **Terminal:** zsh by default with autosuggestions and syntax highlighting. The xfce4-terminal uses the Neon Lab palette and the **Null Mono** font.
+- **Prompt:** `┌──(user<mark>host)-[path]-[git branch]-[✗ exit code]` / `└─$`. The frame turns red as root.
+- **Network toolkit:** nmap, tcpdump, tshark, iperf3, mtr, dnsutils, lldpd, ethtool, nftables, wireguard-tools, arp-scan, ipcalc, snmp, minicom and picocom.
+- **Ops:** Docker plus Compose, SSH (root login disabled), chrony and unattended security upgrades.
+- **USB-first:** live boot with **persistence**, so your files and settings survive reboots. The Debian installer is included if you want it on disk.
+- **Branding:** wallpaper, login screen, GRUB background, `os-release` and `null-info`.
 
-Live session login: `user` / `live`. Don't boot the live image on an untrusted network with SSH up. Installed systems use the user you create in the installer.
+Live session login: `user` / `live`, with passwordless sudo. Installed systems use the account you create in the installer.
+
+## Get the ISO
+
+Every push to `main` builds it on GitHub Actions:
+
+1. Open **Actions → Build Null OS → latest run**.
+2. Download the **null-os-iso** artifact.
+
+Tagging a release (`git tag v0.1 && git push --tags`) also attaches the ISO to a GitHub Release.
+
+## Put it on a USB stick
+
+```
+sudo tools/make-usb.sh nullos-0.1-trixie-amd64.iso /dev/sdX
+```
+This writes the ISO and adds a `persistence` partition in the leftover space. A plain `dd` or balenaEtcher also works, but without persistence.
+
+## Build it yourself
+
+| Host | Command |
+|---|---|
+| Debian 12/13 | `sudo ./build.sh` |
+| Any Linux with Docker | `./docker-build.sh` |
+
+A build takes 30–60 minutes and needs about 15 GB of free disk.
 
 ## Customize
 
 | Want to change | Edit |
 |---|---|
-| Name, version, Debian release, desktop on/off | `remix.conf` |
-| Packages | `config/package-lists/*.list.chroot` |
-| Files baked into the system | `config/includes.chroot/` (mirrors `/`) |
-| Build-time scripts | `config/hooks/live/*.hook.chroot` |
-| Installer answers | `config/includes.installer/preseed.cfg` |
+| Name, version, Debian release, desktop on/off | `null-os.conf` |
+| Packages | `config/package-lists/*.list.chroot`, `config/package-lists-optional/desktop.list.chroot` |
+| Prompt and shell | `config/includes.chroot/etc/skel/.zshrc` |
+| Terminal colors and font | `config/includes.chroot/etc/skel/.config/xfce4/terminal/terminalrc` |
+| Desktop defaults | `config/includes.chroot/etc/xdg/xfce4/xfconf/` |
+| The Null mark | `config/includes.chroot/usr/share/null-os/null-mark.py` (single source for the font glyph and all images) |
+| Wallpaper, logo, GRUB image | `python3 tools/make-branding.py` (needs `pip install cairosvg`) |
+| Build-time scripts | `config/hooks/live/` |
 
-## Build
+## How the Null mark works
 
-Pick one option.
+The mark is defined once, as geometry, in `null-mark.py`. At image build time `patch-font.py` adds it to JetBrains Mono at the private-use code point **U+E900** and renames the result **Null Mono**. The prompt prints `` in local graphical terminals and `@` elsewhere. Force either with `NULL_GLYPH=1` or `NULL_GLYPH=0` in `~/.zshrc`.
 
-**1. Debian host (fastest)**
-```
-sudo ./build.sh
-```
+## Roadmap
 
-**2. Any Linux box with Docker** (Ubuntu, Proxmox host, WSL2)
-```
-./docker-build.sh
-```
-
-**3. GitHub Actions (no local machine needed)**
-Push this folder to a GitHub repo. Every push to `main` builds the ISO and attaches it as a workflow artifact. Pushing a tag like `v0.1` also publishes it as a GitHub Release.
-
-Expect a build to take 20–60 minutes and need about 10 GB of free disk. The ISO is about 1.2 GB for the server build and about 2 GB with the desktop. The output is `remix-0.1-trixie-amd64.iso` plus a `.sha256` file.
-
-## Test
-
-```
-qemu-system-x86_64 -enable-kvm -m 4096 -cdrom remix-0.1-trixie-amd64.iso
-# UEFI:
-qemu-system-x86_64 -enable-kvm -m 4096 -bios /usr/share/ovmf/OVMF.fd -cdrom remix-*.iso
-```
-Or upload it to Proxmox as an ISO image and boot a VM from it. To write it to USB, use `dd if=remix-*.iso of=/dev/sdX bs=4M status=progress conv=fsync`.
-
-## Troubleshooting
-
-- **"Unable to locate package X"**: a package name changed between Debian releases. Remove it from the list, or look it up on packages.debian.org.
-- **Build fails mid-way**: run `sudo lb clean --purge` and then rebuild. `build.log` has the full output.
-- **Docker build fails on mounts**: the container needs `--privileged`, which `docker-build.sh` already passes.
-
-## Next steps toward a real derivative
-
-1. Move customizations into your own `.deb` packages, such as `remix-branding` and `remix-netops` metapackages.
-2. Host them in your own apt repo using `aptly` or `reprepro`, signed with your GPG key.
-3. Add the repo to the image so installed systems get your updates through `apt upgrade`.
+- [ ] First successful CI build and screenshot review
+- [ ] Plymouth boot splash with the mark
+- [ ] Custom GTK/xfwm4 theme (currently Adwaita-dark with accent overrides)
+- [ ] Null apps (Null Search, Null Notes) as optional packages
+- [ ] Own signed apt repo for Null OS packages
