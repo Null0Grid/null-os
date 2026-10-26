@@ -1,5 +1,0 @@
-# Extra packages copied onto the ISO's pool for the installer
-grub-efi-amd64
-grub-pc
-efibootmgr
-shim-signed
