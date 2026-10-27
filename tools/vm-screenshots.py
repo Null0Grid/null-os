@@ -11,6 +11,7 @@ Shots taken:
   04-start-menu       start menu open
   05-terminal         Konsole: two-line prompt, null-info, a failed command
   05b-fastfetch       fastfetch with the Null OS logo
+  05c-shortcut-offer  "Add to desktop?" notification after an app install
   06-root             root prompt (red frame)
   07-console-prompt   text console: prompt with the @ fallback
   08-shutdown-NN      Plymouth shutdown, every 0.4 s
@@ -145,6 +146,10 @@ def main():
         type_text("clear; fastfetch\n")
         time.sleep(3)
         shot("05b-fastfetch")
+        # Simulate installing an app: the shortcut helper should offer it
+        type_text("cp /usr/share/applications/vlc.desktop ~/.local/share/applications/demo-app.desktop\n")
+        time.sleep(7)
+        shot("05c-shortcut-offer")
         type_text("sudo -i\n")
         time.sleep(3)
         shot("06-root")

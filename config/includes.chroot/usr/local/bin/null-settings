@@ -1,0 +1,26 @@
+#!/bin/sh
+# Null OS Settings: options for Null OS's own features.
+CONF="$HOME/.config/null-os/shortcuts.conf"
+mkdir -p "$(dirname "$CONF")"
+get() { sed -n "s/^$1=//p" "$CONF" 2>/dev/null | tail -n 1; }
+ASK=$(get ask); ASK=${ASK:-true}
+STYLE=$(get icon_style); STYLE=${STYLE:-original}
+
+on() { [ "$1" = "$2" ] && echo on || echo off; }
+CHOICE=$(kdialog --title "Null OS Settings" --icon null-os \
+  --radiolist "Desktop shortcut icons" \
+  original "Original app icons (Steam looks like Steam)" "$(on "$STYLE" original)" \
+  nullline "NullLine white (matches Null OS)" "$(on "$STYLE" nullline)") || exit 0
+
+if kdialog --title "Null OS Settings" --icon null-os \
+     --yesno "When a new app is installed, ask whether to add it to the desktop?" \
+     --yes-label "Ask" --no-label "Don't ask" \
+     $( [ "$ASK" = true ] || echo --default "Don't ask" ); then
+  NEWASK=true
+else
+  NEWASK=false
+fi
+
+printf '[shortcuts]\nask=%s\nicon_style=%s\n' "$NEWASK" "$CHOICE" > "$CONF"
+null-shortcuts --restyle >/dev/null 2>&1
+kdialog --title "Null OS Settings" --icon null-os --passivepopup "Saved" 3

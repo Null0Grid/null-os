@@ -1,0 +1,244 @@
+#!/usr/bin/env python3
+"""null-shortcuts: offer a desktop shortcut whenever a new app is installed.
+
+Runs in the background in each Plasma session (autostart). Watches every
+place apps get installed (apt, Flatpak/Discover, Steam games, per-user
+apps). For each new app it shows a notification with "Add to desktop" /
+"No thanks". Apps that were already installed at first run are ignored.
+
+Settings live in ~/.config/null-os/shortcuts.conf (edit with
+"Null OS Settings"):
+  ask=true|false           offer shortcuts for new apps
+  icon_style=original|nullline
+
+  null-shortcuts               run the watcher (used by autostart)
+  null-shortcuts --restyle     re-apply icon_style to existing shortcuts
+  null-shortcuts --add FILE    add a shortcut for FILE.desktop now
+"""
+import configparser
+import glob
+import os
+import shutil
+import subprocess
+import sys
+import threading
+import time
+
+HOME = os.path.expanduser("~")
+CONF = os.path.join(HOME, ".config", "null-os", "shortcuts.conf")
+STATE = os.path.join(HOME, ".local", "state", "null-os", "known-apps")
+APP_DIRS = [
+    "/usr/share/applications",
+    "/usr/local/share/applications",
+    "/var/lib/flatpak/exports/share/applications",
+    os.path.join(HOME, ".local/share/flatpak/exports/share/applications"),
+    os.path.join(HOME, ".local/share/applications"),   # Steam games, user apps
+]
+ICON_DIRS = [  # where apps keep their own (original) icons
+    os.path.join(HOME, ".local/share/icons/hicolor"),
+    os.path.join(HOME, ".local/share/flatpak/exports/share/icons/hicolor"),
+    "/var/lib/flatpak/exports/share/icons/hicolor",
+    "/usr/local/share/icons/hicolor",
+    "/usr/share/icons/hicolor",
+]
+SKIP_CATEGORIES = {"Settings", "System", "Monitor", "PackageManager", "ConsoleOnly"}
+MARK = "X-NullOS-Shortcut"
+POLL = 3  # seconds
+
+
+def log(msg):
+    print(f"null-shortcuts: {msg}", flush=True)
+
+
+def settings():
+    c = configparser.ConfigParser()
+    c.read(CONF)
+    s = c["shortcuts"] if "shortcuts" in c else {}
+    return {"ask": str(s.get("ask", "true")).lower() != "false",
+            "icon_style": s.get("icon_style", "original")}
+
+
+def desktop_dir():
+    try:
+        d = subprocess.run(["xdg-user-dir", "DESKTOP"], capture_output=True, text=True).stdout.strip()
+    except FileNotFoundError:
+        d = ""
+    return d or os.path.join(HOME, "Desktop")
+
+
+def read_entry(path):
+    c = configparser.ConfigParser(interpolation=None, strict=False)
+    c.optionxform = str
+    try:
+        c.read(path, encoding="utf-8")
+    except (configparser.Error, UnicodeDecodeError):
+        return None
+    if "Desktop Entry" not in c:
+        return None
+    return c["Desktop Entry"]
+
+
+def is_launchable(path):
+    e = read_entry(path)
+    if e is None:
+        return False
+    if e.get("Type", "Application") != "Application":
+        return False
+    if e.get("NoDisplay", "false").lower() == "true" or e.get("Hidden", "false").lower() == "true":
+        return False
+    if not e.get("Exec"):
+        return False
+    only = e.get("OnlyShowIn", "")
+    if only and "KDE" not in only.split(";"):
+        return False
+    cats = set(filter(None, e.get("Categories", "").split(";")))
+    if cats & SKIP_CATEGORIES:
+        return False
+    return True
+
+
+def all_apps():
+    found = {}
+    for d in APP_DIRS:
+        for p in glob.glob(os.path.join(d, "*.desktop")):
+            found.setdefault(os.path.basename(p), p)  # first dir wins, like XDG
+    return found
+
+
+def load_known():
+    try:
+        with open(STATE) as f:
+            return set(l.strip() for l in f if l.strip())
+    except FileNotFoundError:
+        return None
+
+
+def save_known(names):
+    os.makedirs(os.path.dirname(STATE), exist_ok=True)
+    with open(STATE, "w") as f:
+        f.write("\n".join(sorted(names)) + "\n")
+
+
+def original_icon_path(name):
+    """The app's own icon file, skipping icon themes like NullLine."""
+    if not name or os.path.isabs(name):
+        return name
+    best = None
+    for base in ICON_DIRS:
+        for size in ("scalable", "512x512", "256x256", "128x128", "96x96", "64x64", "48x48"):
+            for ext in ("svg", "png"):
+                p = os.path.join(base, size, "apps", f"{name}.{ext}")
+                if os.path.exists(p):
+                    return p
+    for ext in ("svg", "png", "xpm"):
+        p = f"/usr/share/pixmaps/{name}.{ext}"
+        if os.path.exists(p):
+            best = best or p
+    return best or name
+
+
+def styled_icon(icon_name, style):
+    return original_icon_path(icon_name) if style == "original" else icon_name
+
+
+def add_shortcut(src):
+    e = read_entry(src)
+    if e is None:
+        return None
+    dst_dir = desktop_dir()
+    os.makedirs(dst_dir, exist_ok=True)
+    dst = os.path.join(dst_dir, os.path.basename(src))
+    icon_name = e.get("Icon", "")
+    with open(src, encoding="utf-8") as f:
+        lines = f.read().splitlines()
+    out, in_main = [], False
+    style = settings()["icon_style"]
+    for line in lines:
+        if line.startswith("["):
+            if in_main:
+                out += [f"{MARK}=true", f"X-NullOS-IconName={icon_name}"]
+            in_main = line.strip() == "[Desktop Entry]"
+        if in_main and line.startswith("Icon="):
+            line = f"Icon={styled_icon(icon_name, style)}"
+        if in_main and (line.startswith(MARK) or line.startswith("X-NullOS-IconName")):
+            continue
+        out.append(line)
+    if in_main:
+        out += [f"{MARK}=true", f"X-NullOS-IconName={icon_name}"]
+    with open(dst, "w", encoding="utf-8") as f:
+        f.write("\n".join(out) + "\n")
+    os.chmod(dst, 0o755)  # Plasma runs executable desktop launchers without a warning
+    log(f"added {dst}")
+    return dst
+
+
+def restyle():
+    style = settings()["icon_style"]
+    n = 0
+    for p in glob.glob(os.path.join(desktop_dir(), "*.desktop")):
+        with open(p, encoding="utf-8") as f:
+            lines = f.read().splitlines()
+        if not any(l.startswith(f"{MARK}=true") for l in lines):
+            continue
+        name = next((l.split("=", 1)[1] for l in lines if l.startswith("X-NullOS-IconName=")), "")
+        if not name:
+            continue
+        new = [f"Icon={styled_icon(name, style)}" if l.startswith("Icon=") else l for l in lines]
+        if new != lines:
+            with open(p, "w", encoding="utf-8") as f:
+                f.write("\n".join(new) + "\n")
+            n += 1
+    log(f"restyled {n} shortcut(s) to {style}")
+
+
+def ask(src):
+    e = read_entry(src) or {}
+    name = e.get("Name", os.path.basename(src)[:-8])
+    icon = e.get("Icon", "null-os")
+    if os.environ.get("NULL_SHORTCUTS_AUTO") == "yes":   # tests
+        add_shortcut(src)
+        return
+    try:
+        r = subprocess.run(["notify-send", "-a", "Null OS", "-i", icon, "-t", "0",
+                            "-A", "add=Add to desktop", "-A", "no=No thanks",
+                            f"{name} installed", f"Add {name} to the desktop?"],
+                           capture_output=True, text=True, timeout=3600)
+        if r.stdout.strip() == "add":
+            add_shortcut(src)
+    except (FileNotFoundError, subprocess.TimeoutExpired) as ex:
+        log(f"notification failed: {ex}")
+
+
+def watch():
+    known = load_known()
+    apps = all_apps()
+    if known is None:                       # first run: what's here is "known"
+        known = set(apps)
+        save_known(known)
+        log(f"first run, {len(known)} apps already installed")
+    while True:
+        apps = all_apps()
+        new = [n for n in apps if n not in known]
+        for n in new:
+            known.add(n)
+            if settings()["ask"] and is_launchable(apps[n]):
+                threading.Thread(target=ask, args=(apps[n],), daemon=True).start()
+        if new:
+            save_known(known)
+        # Forget removed apps so a reinstall asks again
+        gone = known - set(apps)
+        if gone:
+            known -= gone
+            save_known(known)
+        time.sleep(POLL)
+
+
+if __name__ == "__main__":
+    if len(sys.argv) == 2 and sys.argv[1] == "--restyle":
+        restyle()
+    elif len(sys.argv) == 3 and sys.argv[1] == "--add":
+        add_shortcut(sys.argv[2])
+    elif len(sys.argv) == 1:
+        watch()
+    else:
+        sys.exit(__doc__)

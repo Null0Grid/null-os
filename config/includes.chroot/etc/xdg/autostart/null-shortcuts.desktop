@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Null OS shortcut helper
+Comment=Offers a desktop shortcut when new apps are installed
+Exec=null-shortcuts
+Icon=null-os
+NoDisplay=true
+OnlyShowIn=KDE;
+X-KDE-autostart-phase=2

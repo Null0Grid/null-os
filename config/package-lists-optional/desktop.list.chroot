@@ -50,3 +50,5 @@ xdg-user-dirs
 xdg-utils
 wireshark
 remmina
+kdialog
+libnotify-bin

@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Null OS Settings
+Comment=Desktop shortcuts and other Null OS options
+Exec=null-settings
+Icon=null-os
+Categories=Qt;KDE;Utility;
+Keywords=null;shortcuts;desktop;icons;

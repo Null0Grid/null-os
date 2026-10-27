@@ -59,6 +59,7 @@ A ring crossed by two parallel slashes (echoes the Null Grid `//` family mark).
 | Network toolkit | nmap, tcpdump, Wireshark, iperf3, mtr, dnsutils, lldpd, ethtool, nftables, wireguard-tools, arp-scan, ipcalc, snmp, minicom, picocom, Remmina |
 | Containers | Docker plus Compose |
 | Null apps | Browser only for now (Notes, Drive, Scribe later) |
+| Desktop shortcuts | `null-shortcuts` asks "Add to desktop?" when a new app is installed (apt, Flatpak, Steam games); **Null OS Settings** picks Original or NullLine icons and turns the prompt on or off |
 
 ## System
 
@@ -90,6 +91,7 @@ Known issues:
 ## Open
 
 - Build Null Files, the Null Grid file manager, and swap it in for Dolphin
+- Gamer Mode: controller/WASD launcher like Steam's library and the Xbox home screen (design next)
 - Optional startup/shutdown sounds
 - Null Notes, Drive and Scribe as preinstalled apps
 - Fully custom SDDM theme and Calamares slideshow
