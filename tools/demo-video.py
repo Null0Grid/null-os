@@ -132,8 +132,12 @@ class Capture(threading.Thread):
                 self.errors.append(f"monitor: {e!r}")
                 time.sleep(0.5)
                 continue
-            # The reply echoes the command; anything else is an error message
-            extra = reply.replace(cmd, "").strip()
+            # The reply is the monitor echoing the typed command (with
+            # line-editing escape codes); only real error text matters
+            import re
+            extra = re.sub(r"\x1b\[[0-9;]*[A-Za-z]", "", reply)
+            extra = extra.replace(cmd, "").strip()
+            extra = "" if not extra or cmd.startswith(extra) or extra in cmd else extra
             if extra and len(self.errors) < 5:
                 self.errors.append(f"{cmd.split()[0]} {self.fmt}: {extra[:200]}")
             if not os.path.exists(path):
@@ -180,7 +184,7 @@ class Scenes:
 
 def record(iso, work):
     os.makedirs(work, exist_ok=True)
-    framedir = os.path.join(work, "frames")
+    framedir = os.path.abspath(os.path.join(work, "frames"))   # concat lists resolve relative to themselves
     shutil.rmtree(framedir, ignore_errors=True)
     t0 = time.time()
     sc = Scenes(t0)
