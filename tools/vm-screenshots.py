@@ -13,7 +13,7 @@ Shots taken:
   07-root            root prompt (red frame)
   08-tty-prompt      text console login: prompt with the @ fallback
   09-diagnostics     auto-login and Plymouth diagnostics
-  10-shutdown-NN     Plymouth shutdown animation
+  14-shutdown-fast-NN Plymouth shutdown animation, every 0.4 s
   11-13 debug-*      root debug shell: live user, journal, PAM (test only)
 """
 import os
@@ -174,9 +174,9 @@ def main():
         time.sleep(3)
         shot("13-debug-theme")
         type_text("poweroff\n")
-        for n in range(5):
-            time.sleep(1.5)
-            shot(f"10-shutdown-{n:02d}")
+        for n in range(20):
+            time.sleep(0.4)
+            shot(f"14-shutdown-fast-{n:02d}")
         time.sleep(5)
     finally:
         vm.terminate()
