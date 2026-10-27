@@ -1,15 +1,14 @@
 #!/usr/bin/env python3
 """Record and edit the Null OS demo video.
 
-  demo-video.py record <iso> <workdir>   boot the ISO in QEMU (SDL window in an
-                                         Xvfb screen), record the screen with
-                                         ffmpeg and drive a scripted tour;
-                                         writes raw.mkv + scenes.json
+  demo-video.py record <iso> <workdir>   boot the ISO in QEMU, grab the guest
+                                         screen ~8 fps while driving a scripted
+                                         tour; writes raw.mkv + scenes.json
   demo-video.py edit <workdir> <out.mp4> cut, speed up, caption and add an
                                          intro and outro; writes the final mp4
 
-record needs: DISPLAY pointing at an Xvfb screen of WxH, qemu-system-x86_64
-with SDL, ffmpeg. edit needs: ffmpeg (drawtext), Pillow, Silkscreen and VT323
+record needs: qemu-system-x86_64 and ffmpeg. Frames come straight from the
+guest framebuffer (QEMU screendump), so no display server is needed. edit needs: ffmpeg (drawtext), Pillow, Silkscreen and VT323
 TTFs in $DEMO_FONTS (default ./demo-fonts).
 """
 import json
@@ -18,11 +17,13 @@ import shutil
 import socket
 import subprocess
 import sys
+import threading
 import time
 
 W, H, FPS = 1280, 800, 30
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-MON = "/tmp/null-demo-monitor.sock"
+MON = "/tmp/null-demo-monitor.sock"      # keys
+CAP = "/tmp/null-demo-capture.sock"      # screendumps (separate monitor)
 
 KEYS = {" ": "spc", "-": "minus", "/": "slash", ".": "dot", "\n": "ret",
         "_": "shift-minus", "~": "shift-grave_accent", "|": "shift-backslash",
@@ -68,6 +69,57 @@ def type_text(text):
             key(ch)
 
 
+class Capture(threading.Thread):
+    """Grab the guest framebuffer as PNGs through a dedicated QEMU monitor.
+    Full guest resolution, ~8 fps, no window or display server involved."""
+
+    def __init__(self, outdir, t0):
+        super().__init__(daemon=True)
+        self.outdir, self.t0 = outdir, t0
+        self.frames = []          # (path, t)
+        self.running = True
+        self.paused = False
+        os.makedirs(outdir, exist_ok=True)
+
+    def run(self):
+        s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        s.settimeout(10)
+        for _ in range(50):
+            try:
+                s.connect(CAP)
+                break
+            except OSError:
+                time.sleep(0.2)
+        buf = b""
+
+        def until_prompt():
+            nonlocal buf
+            while b"(qemu)" not in buf:
+                buf += s.recv(65536)
+            buf = buf.split(b"(qemu)", 1)[1]
+
+        until_prompt()
+        n = 0
+        while self.running:
+            if self.paused:
+                time.sleep(0.2)
+                continue
+            path = os.path.join(self.outdir, f"{n:06d}.png")
+            t = time.time() - self.t0
+            try:
+                s.sendall(f"screendump -f png {path}\n".encode())
+                until_prompt()
+            except (socket.timeout, OSError):
+                log("capture: monitor stalled")
+                time.sleep(0.5)
+                continue
+            if os.path.exists(path):
+                self.frames.append((path, round(t, 3)))
+                n += 1
+            time.sleep(0.04)
+        s.close()
+
+
 class Scenes:
     def __init__(self, t0):
         self.t0 = t0
@@ -92,42 +144,45 @@ class Scenes:
 
 def record(iso, work):
     os.makedirs(work, exist_ok=True)
-    raw = os.path.join(work, "raw.mkv")
-    disp = os.environ.get("DISPLAY", ":99")
-    ff = subprocess.Popen(
-        ["ffmpeg", "-y", "-loglevel", "error", "-f", "x11grab", "-draw_mouse", "0",
-         "-video_size", f"{W}x{H}", "-framerate", str(FPS), "-i", disp,
-         "-c:v", "libx264", "-preset", "ultrafast", "-qp", "16", raw],
-        stdin=subprocess.PIPE)
-    time.sleep(1.0)
-    sc = Scenes(time.time())
+    framedir = os.path.join(work, "frames")
+    shutil.rmtree(framedir, ignore_errors=True)
+    t0 = time.time()
+    sc = Scenes(t0)
 
-    if os.path.exists(MON):
-        os.remove(MON)
+    for p in (MON, CAP):
+        if os.path.exists(p):
+            os.remove(p)
     kvm = os.access("/dev/kvm", os.R_OK | os.W_OK)
     cmd = ["qemu-system-x86_64", "-m", "4096", "-smp", "2", "-cdrom", iso, "-boot", "d",
-           "-vga", "virtio", "-display", "sdl", "-full-screen",
-           "-monitor", f"unix:{MON},server,nowait", "-nic", "user,model=virtio-net-pci"]
+           "-vga", "virtio", "-display", "none",
+           "-monitor", f"unix:{MON},server,nowait", "-monitor", f"unix:{CAP},server,nowait",
+           "-nic", "user,model=virtio-net-pci"]
     if kvm:
         cmd += ["-enable-kvm", "-cpu", "host"]
     log(f"starting QEMU (kvm={kvm})")
     vm = subprocess.Popen(cmd)
+    cap = Capture(framedir, t0)
     try:
         for _ in range(50):
-            if os.path.exists(MON):
+            if os.path.exists(MON) and os.path.exists(CAP):
                 break
             time.sleep(0.2)
+        cap.start()
 
         time.sleep(4)
         sc.start("boot-menu", "BOOT MENU", "null os 0.2 / live usb")
         time.sleep(4)
         key("ret")
-        sc.start("startup", "GLITCH STARTUP", "plymouth / built from the null mark", speed=1.6)
-        time.sleep(22)
+        time.sleep(5)
+        sc.start("startup", "GLITCH STARTUP", "plymouth / built from the null mark", speed=1.8)
+        time.sleep(15)
         sc.end()
 
         log("waiting for the desktop")
-        time.sleep(100)
+        cap.paused = True
+        time.sleep(95)
+        cap.paused = False
+        time.sleep(1)
         sc.start("desktop", "KDE PLASMA / NEON LAB", "null lab colors / nullline icons")
         time.sleep(4.5)
 
@@ -137,8 +192,12 @@ def record(iso, work):
         type_text("node")
         time.sleep(1.5)
         key("ret")
-        sc.start("browser", "NULL GRID BROWSER", "null search by default", speed=1.3)
-        time.sleep(14)
+        sc.start("browser", "NULL GRID BROWSER", "null search by default", speed=1.6)
+        time.sleep(10)
+        key("esc")          # close the first-run welcome
+        time.sleep(1)
+        key("esc")
+        time.sleep(1)
         key("ctrl-l")
         time.sleep(0.6)
         type_text("search.nullgrid.dev\n")
@@ -147,7 +206,7 @@ def record(iso, work):
         key("alt-f4")
         time.sleep(3)
 
-        sc.start("terminal", "TWO-LINE PROMPT", "zsh / null mono / network toolkit", speed=1.5)
+        sc.start("terminal", "TWO-LINE PROMPT", "zsh / null mono / network toolkit", speed=1.9)
         key("ctrl-alt-t")
         time.sleep(4)
         type_text("null-info\n")
@@ -167,13 +226,13 @@ def record(iso, work):
         key("alt-f4")
         time.sleep(2)
 
-        sc.start("discover", "DISCOVER + FLATHUB", "apps in one click", speed=1.6)
+        sc.start("discover", "DISCOVER + FLATHUB", "apps in one click", speed=2.0)
         key("meta_l")
         time.sleep(1.5)
         type_text("discover")
         time.sleep(1.2)
         key("ret")
-        time.sleep(13)
+        time.sleep(11)
         sc.end()
         key("alt-f4")
         time.sleep(2)
@@ -198,15 +257,29 @@ def record(iso, work):
     finally:
         sc.end()
         time.sleep(1)
-        try:
-            ff.communicate(b"q", timeout=30)
-        except subprocess.TimeoutExpired:
-            ff.kill()
+        cap.running = False
+        cap.join(timeout=15)
         vm.terminate()
         try:
             vm.wait(timeout=30)
         except subprocess.TimeoutExpired:
             vm.kill()
+    # Frames -> constant-rate raw video on the same clock as the scenes.
+    # Each frame lasts until the next one; paused stretches simply hold.
+    frames = cap.frames
+    log(f"captured {len(frames)} frames")
+    lst = os.path.join(work, "frames.txt")
+    with open(lst, "w") as f:
+        f.write("ffconcat version 1.0\n")
+        if frames:
+            f.write(f"file '{frames[0][0]}'\nduration {frames[0][1]:.3f}\n")  # lead-in
+        for (p, t), nxt in zip(frames, frames[1:] + [(None, frames[-1][1] + 0.5)] if frames else []):
+            f.write(f"file '{p}'\nduration {max(0.01, nxt[1] - t):.3f}\n")
+        if frames:
+            f.write(f"file '{frames[-1][0]}'\n")
+    subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", lst,
+                    "-vf", f"scale={W}:{H}:force_original_aspect_ratio=decrease,pad={W}:{H}:(ow-iw)/2:(oh-ih)/2:color=0x0a0a0f,fps={FPS},format=yuv420p",
+                    "-c:v", "libx264", "-preset", "veryfast", "-crf", "16", os.path.join(work, "raw.mkv")], check=True)
     with open(os.path.join(work, "scenes.json"), "w") as f:
         json.dump(sc.items, f, indent=2)
     log(f"recorded {len(sc.items)} scenes -> {raw}")
