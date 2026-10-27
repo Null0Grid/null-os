@@ -3,6 +3,10 @@ linux-image-amd64
 live-boot
 live-config
 live-config-systemd
+# live-config only *recommends* these, and recommends are off: without
+# user-setup the live user is never created and every login fails
+user-setup
+live-tools
 systemd-sysv
 sudo
 locales
