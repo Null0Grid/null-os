@@ -39,7 +39,7 @@ A ring crossed by two parallel slashes (echoes the Null Grid `//` family mark).
 
 | | |
 |---|---|
-| Terminal | **Konsole** with a Null Lab color scheme and Null Mono |
+| Terminal | **Konsole** with a Null Lab color scheme and Null Mono; **fastfetch** with the Null mark logo and a Base line showing Debian |
 | Shell | **zsh** for every user, autosuggestions and syntax highlighting |
 | Prompt | Kali-style two lines: `┌──(user<mark>host)-[path]-[branch]-[✗ code]` / `└─$` |
 | Fallback | `@` instead of the mark over SSH or on the text console |

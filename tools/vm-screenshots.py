@@ -10,6 +10,7 @@ Shots taken:
   03-desktop          Plasma live desktop
   04-start-menu       start menu open
   05-terminal         Konsole: two-line prompt, null-info, a failed command
+  05b-fastfetch       fastfetch with the Null OS logo
   06-root             root prompt (red frame)
   07-console-prompt   text console: prompt with the @ fallback
   08-shutdown-NN      Plymouth shutdown, every 0.4 s
@@ -141,6 +142,9 @@ def main():
         type_text("nope\n")
         time.sleep(2)
         shot("05-terminal")
+        type_text("clear; fastfetch\n")
+        time.sleep(3)
+        shot("05b-fastfetch")
         type_text("sudo -i\n")
         time.sleep(3)
         shot("06-root")

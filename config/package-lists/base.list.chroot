@@ -25,6 +25,8 @@ rsync
 unzip
 zstd
 htop
+fastfetch
+fonts-dejavu-core
 btop
 tmux
 jq
