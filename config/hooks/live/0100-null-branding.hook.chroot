@@ -51,8 +51,65 @@ if [ -d /usr/share/plasma ]; then
     /usr/share/desktop-base/nullos-theme 100
   update-alternatives --set desktop-theme /usr/share/desktop-base/nullos-theme
 
-  # Icon cache for NullLine
+  # Icon caches (NullLine theme, null-os logo in hicolor)
   [ -d /usr/share/icons/NullLine ] && gtk-update-icon-cache -f -q /usr/share/icons/NullLine || true
+  gtk-update-icon-cache -f -q /usr/share/icons/hicolor || true
+
+  # Null OS look-and-feel: Breeze Dark's layouts with Null OS defaults.
+  # Plasma applies the default look-and-feel's settings on first login,
+  # which would otherwise override /etc/xdg with Breeze colors, icons and
+  # the stock wallpaper.
+  LNF=/usr/share/plasma/look-and-feel
+  if [ -d $LNF/org.kde.breezedark.desktop ]; then
+    rm -rf $LNF/org.nullos.desktop
+    cp -a $LNF/org.kde.breezedark.desktop $LNF/org.nullos.desktop
+    python3 - <<'PY'
+import json
+p = "/usr/share/plasma/look-and-feel/org.nullos.desktop/metadata.json"
+m = json.load(open(p))
+k = m.setdefault("KPlugin", {})
+k["Id"] = "org.nullos.desktop"
+k["Name"] = "Null OS"
+k["Description"] = "Null OS: Neon Lab colors, NullLine icons, Null OS wallpaper"
+for key in list(k):
+    if key.startswith(("Name[", "Description[")):
+        del k[key]
+k["Authors"] = [{"Name": "Null Grid"}]
+json.dump(m, open(p, "w"), indent=2)
+PY
+    cat > $LNF/org.nullos.desktop/contents/defaults <<'DEF'
+[kcminputrc][Mouse]
+cursorTheme=breeze_cursors
+
+[kdeglobals][General]
+ColorScheme=NullLab
+
+[kdeglobals][Icons]
+Theme=NullLine
+
+[kdeglobals][KDE]
+widgetStyle=Breeze
+
+[kwinrc][org.kde.kdecoration2]
+library=org.kde.breeze
+theme=Breeze
+
+[plasmarc][Theme]
+name=breeze-dark
+
+[Wallpaper]
+Image=NullOS
+DEF
+  fi
+
+  # Fallback: anything still pointing at Plasma's stock "Next" wallpaper
+  # (lock screen, new desktops) shows the Null OS wallpaper instead.
+  if [ -d /usr/share/wallpapers/Next ]; then
+    find /usr/share/wallpapers/Next -type f \( -name '*.png' -o -name '*.jpg' -o -name '*.jxl' -o -name '*.webp' \) | while read -r f; do
+      dpkg-divert --package null-os-branding --add --rename --divert "$f.plasma" "$f" >/dev/null
+      cp /usr/share/wallpapers/NullOS/contents/images/1920x1080.png "$f"
+    done
+  fi
 
   # Null Grid as the default browser
   NG=$(grep -lE '^Name=.*(Null Grid|NODE_GRID)' /usr/share/applications/*.desktop 2>/dev/null | head -1 || true)
@@ -78,8 +135,9 @@ MIME
                s/^( *(versionedName|shortVersionedName): *).*/\1$NULL_NAME $NULL_VERSION/" \
       /etc/calamares/branding/debian/branding.desc
   fi
-  for d in /usr/share/applications/install-debian.desktop /etc/skel/Desktop/install-debian.desktop; do
-    [ -f "$d" ] && sed -i "s/^Name=.*/Name=Install $NULL_NAME/; s/^Name\[.*//" "$d"
+  # Every "Install Debian" launcher (menu, desktop, autostart), whatever its file name
+  for d in $(grep -rlE '^Name=Install Debian' /usr/share/applications /etc/skel /etc/xdg 2>/dev/null); do
+    sed -i -E "s/^Name=.*/Name=Install $NULL_NAME/; /^Name\[/d; s/^Comment=.*/Comment=Install $NULL_NAME to this computer/; /^Comment\[/d" "$d"
   done
 
   # SDDM: Null OS logo instead of the Debian one

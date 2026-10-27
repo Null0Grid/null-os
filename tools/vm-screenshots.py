@@ -167,9 +167,12 @@ def main():
         type_text("clear; journalctl -b --no-pager | grep -iE 'pam|login|sddm|autologin|user-setup|live-config' | tail -n 30\n")
         time.sleep(5)
         shot("12-debug-journal")
-        type_text("clear; ls -la /usr/lib/user-setup /etc/sddm.conf.d; cat /etc/pam.d/sddm-autologin | grep -v '^#'\n")
+        type_text("clear; head -n 3 /etc/os-release; ls /usr/share/plasma/look-and-feel; "
+                  "grep -hE 'LookAndFeel|ColorScheme|^Theme' /etc/xdg/kdeglobals /home/user/.config/kdeglobals; "
+                  "ls -d /usr/share/icons/NullLine /usr/share/wallpapers/NullOS; "
+                  "grep -h Image /home/user/.config/plasma-org.kde.plasma.desktop-appletsrc | head -n 3\n")
         time.sleep(3)
-        shot("13-debug-pam")
+        shot("13-debug-theme")
         type_text("poweroff\n")
         for n in range(5):
             time.sleep(1.5)

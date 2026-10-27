@@ -10,7 +10,7 @@ fixed=Null Mono,10,-1,5,400,0,0,0,0,0,0,0,0,0,0,1
 Theme=NullLine
 
 [KDE]
-LookAndFeelPackage=org.kde.breezedark.desktop
+LookAndFeelPackage=org.nullos.desktop
 widgetStyle=Breeze
 
 [WM]

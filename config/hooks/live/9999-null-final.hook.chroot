@@ -1,0 +1,16 @@
+#!/bin/sh
+# Runs last. Re-asserts Null OS identity in case a package step above
+# (base-files, live-build's own hooks) put Debian's back.
+set -ex
+. /etc/null-os-release
+if [ -f /usr/lib/os-release ] && ! grep -q "^NAME=\"$NULL_NAME\"" /usr/lib/os-release; then
+  echo "os-release was reset; reapplying" >&2
+  . /usr/lib/os-release
+  sed -i "s/^PRETTY_NAME=.*/PRETTY_NAME=\"$NULL_NAME $NULL_VERSION (Debian $VERSION_ID based)\"/; s/^NAME=.*/NAME=\"$NULL_NAME\"/; s/^ID=.*/ID=$NULL_ID/" /usr/lib/os-release
+  grep -q '^ID_LIKE=' /usr/lib/os-release || echo 'ID_LIKE=debian' >> /usr/lib/os-release
+fi
+# Make /etc/os-release a real file with the same content, so nothing that
+# replaces the symlink target can bring Debian's name back
+rm -f /etc/os-release
+cp /usr/lib/os-release /etc/os-release
+cat /etc/os-release

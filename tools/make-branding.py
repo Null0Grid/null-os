@@ -215,6 +215,21 @@ def main():
     cairosvg.svg2png(bytestring=boot_splash_svg().encode(), write_to=splash_png)
     with open(out("branding", "boot-splash.svg"), "w") as f:
         f.write(embed_png_svg(splash_png, 640, 480))
+    # Plasma wallpaper package (default wallpaper of the Null OS look-and-feel)
+    import json, shutil
+    wp_dir = ("config", "includes.chroot", "usr", "share", "wallpapers", "NullOS")
+    shutil.copy(out(*bgdir, "wallpaper.png"), out(*wp_dir, "contents", "images", "1920x1080.png"))
+    cairosvg.svg2png(bytestring=wallpaper_svg().encode(), output_width=400, output_height=225,
+                     write_to=out(*wp_dir, "contents", "screenshot.png"))
+    with open(out(*wp_dir, "metadata.json"), "w") as f:
+        json.dump({"KPlugin": {"Id": "NullOS", "Name": "Null OS", "License": "GPL-3.0+",
+                               "Authors": [{"Name": "Null Grid"}]}}, f, indent=2)
+    # Distro logo icon (os-release LOGO=null-os, About this System, menus)
+    for size in (48, 64, 128, 256):
+        cairosvg.svg2png(bytestring=avatar_svg().encode(), output_width=size, output_height=size,
+                         write_to=out("config/includes.chroot/usr/share/icons/hicolor", f"{size}x{size}", "apps", "null-os.png"))
+    with open(out("config/includes.chroot/usr/share/icons/hicolor/scalable/apps/null-os.svg"), "w") as f:
+        f.write(avatar_svg())
     cairosvg.svg2png(bytestring=sddm_logo_svg().encode(),
                      write_to=out("config/includes.chroot/usr/share/null-os/sddm-logo.png"))
     print("branding written")
