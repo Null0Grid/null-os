@@ -147,7 +147,7 @@ def main():
         time.sleep(3)
         shot("05b-fastfetch")
         # Simulate installing an app: the shortcut helper should offer it
-        type_text("cp /usr/share/applications/vlc.desktop ~/.local/share/applications/demo-app.desktop\n")
+        type_text("mkdir -p ~/.local/share/applications; cp /usr/share/applications/vlc.desktop ~/.local/share/applications/demo-app.desktop\n")
         time.sleep(7)
         shot("05c-shortcut-offer")
         type_text("sudo -i\n")
