@@ -26,7 +26,7 @@ A ring crossed by two parallel slashes (echoes the Null Grid `//` family mark).
 | Area | Choice |
 |---|---|
 | Desktop | **KDE Plasma 6** |
-| Layout | **Windows style**: bottom taskbar with start menu (Kickoff), tray, clock |
+| Layout | **Windows style**: bottom taskbar with start menu (Kickoff, Null mark button), tray, clock |
 | Window theme | Breeze, with a custom **Null Lab** color scheme (cyan selection and hover) |
 | Icons | **NullLine**: BeautyLine (GPL) recolored to pure white line icons; hover and selection glow cyan |
 | Fonts | **Silkscreen** for titles (window titles, login, splash), **VT323** for accents, **Inter** for body text, **Null Mono** for terminals and code. Silkscreen and VT323 match the Null Grid browser |
@@ -93,5 +93,5 @@ Known issues:
 - Optional startup/shutdown sounds
 - Null Notes, Drive and Scribe as preinstalled apps
 - Fully custom SDDM theme and Calamares slideshow
-- Start-menu button showing the Null mark
+- [done in 0.2] Start-menu button shows the Null mark
 - Own signed apt repo for Null OS packages

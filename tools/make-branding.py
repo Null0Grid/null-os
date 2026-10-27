@@ -196,9 +196,16 @@ def sddm_logo_svg(w=420, h=110):
             '</svg>')
 
 
+def start_here_svg():
+    """Square Null mark in cyan for the start-menu button and distro logo icons."""
+    return (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="-60 0 720 720" width="720" height="720">'
+            f'<path d="{MARK_PATH}" fill="{CYAN}" fill-rule="nonzero"/></svg>')
+
+
 def main():
     logo = logo_svg()
     open(out("branding", "null-mark.svg"), "w").write(logo)
+    open(out("branding", "start-here.svg"), "w").write(start_here_svg())
     cairosvg.svg2png(bytestring=avatar_svg().encode(),
                      write_to=out("config/includes.chroot/usr/share/null-os/null-mark-256.png"))
     wp = wallpaper_svg()

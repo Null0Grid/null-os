@@ -58,6 +58,26 @@ def main(src, dst):
         out.append(line)
     with open(idx, "w", encoding="utf-8") as f:
         f.write("\n".join(out) + "\n")
+    # The Null mark as the start-menu button and distro logo
+    mark = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "branding", "start-here.svg")
+    if os.path.exists(mark):
+        apps = os.path.join(dst, "apps", "scalable")
+        os.makedirs(apps, exist_ok=True)
+        names = ("start-here", "start-here-symbolic", "start-here-kde", "start-here-kde-symbolic",
+                     "start-here-kde-plasma", "start-here-kde-plasma-symbolic", "start-here-debian",
+                     "distributor-logo", "distributor-logo-symbolic", "debian-logo", "null-os")
+        # Drop BeautyLine's own versions in fixed-size dirs (panel/22 etc.),
+        # which Plasma would otherwise prefer at small sizes
+        for root, _, files in os.walk(dst):
+            for f in files:
+                if os.path.splitext(f)[0] in names and os.path.join(root, f) != os.path.join(apps, f):
+                    os.remove(os.path.join(root, f))
+        for name in names:
+            target = os.path.join(apps, name + ".svg")
+            if os.path.lexists(target):
+                os.remove(target)
+            shutil.copy(mark, target)
+        print("NullLine: start-menu button set to the Null mark")
     cache = os.path.join(dst, "icon-theme.cache")
     if os.path.exists(cache):
         os.remove(cache)
