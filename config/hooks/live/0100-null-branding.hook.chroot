@@ -110,6 +110,22 @@ dpkg-reconfigure -f noninteractive unattended-upgrades || true
 # (wireshark is only created when dumpcap is setuid) makes adduser fail,
 # which silently breaks creation of the live user. The live user gets its
 # groups from live-config.user-default-groups instead.
-groupadd -f wireshark
+groupadd -r -f wireshark
 
 chmod +x /usr/local/bin/null-info
+
+# ---- Keep UID/GID 1000 free for the first real user ----
+# live-config (and Calamares) create the first user as 1000:1000. If any
+# package or step above took 1000, user creation fails and nobody can log in.
+g=$(getent group 1000 | cut -d: -f1 || true)
+if [ -n "$g" ]; then
+  newgid=$(awk -F: 'BEGIN{for(i=999;i>100;i--)u[i]=1} {delete u[$3]} END{for(i=999;i>100;i--) if(i in u){print i; exit}}' /etc/group)
+  echo "Moving group $g off GID 1000 to $newgid"
+  groupmod -g "$newgid" "$g"
+fi
+u=$(getent passwd 1000 | cut -d: -f1 || true)
+if [ -n "$u" ]; then
+  newuid=$(awk -F: 'BEGIN{for(i=999;i>100;i--)u[i]=1} {delete u[$3]} END{for(i=999;i>100;i--) if(i in u){print i; exit}}' /etc/passwd)
+  echo "Moving user $u off UID 1000 to $newuid"
+  usermod -u "$newuid" "$u"
+fi
