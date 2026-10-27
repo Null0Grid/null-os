@@ -12,10 +12,7 @@ apt-get update -qq
 DEBIAN_FRONTEND=noninteractive apt-get install -y -qq \
   live-build debootstrap squashfs-tools xorriso isolinux syslinux-common \
   grub-efi-amd64-bin grub-pc-bin mtools dosfstools ca-certificates \
-  curl git jq python3 >/dev/null
-
-echo ">> Fetching fonts, icons, VSCodium key and the Null Grid browser"
-./tools/fetch-assets.sh
+  curl git jq python3 python3-fonttools python3-brotli >/dev/null
 
 echo ">> Writing release info from null-os.conf"
 cat > config/includes.chroot/etc/null-os-release <<REL
@@ -29,6 +26,9 @@ if [ "$DESKTOP" = "1" ]; then
 else
   rm -f config/package-lists/desktop.list.chroot
 fi
+
+echo ">> Fetching fonts, icons, VSCodium key and the Null Grid browser"
+./tools/fetch-assets.sh
 
 echo ">> Cleaning previous build"
 lb clean --purge >/dev/null 2>&1 || true
