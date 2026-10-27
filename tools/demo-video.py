@@ -277,10 +277,10 @@ def record(iso, work):
         key("alt-f4")
         time.sleep(2)
 
-        sc.start("files", "FILES", "dolphin for now / null files is coming", speed=1.3)
+        sc.start("files", "NULL FILE", "the null grid file manager", speed=1.3)
         key("meta_l")
         time.sleep(1.5)
-        type_text("dolphin")
+        type_text("null file")
         time.sleep(1.2)
         key("ret")
         time.sleep(6)

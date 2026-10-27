@@ -51,7 +51,7 @@ A ring crossed by two parallel slashes (echoes the Null Grid `//` family mark).
 |---|---|
 | Web browser | **Null Grid** (NODE_GRID), latest `.deb` from Null0Grid/node-grid releases; Null Search default |
 | App store | **Discover** with Flathub enabled |
-| File manager | **Null Files** (new Null Grid app, to be built); Dolphin ships until it exists |
+| File manager | **Null File** (Null Grid app, Tauri), latest `.deb` from Null0Grid/null-file releases; default for folders; updates through its signed apt repo |
 | Code editor | **VSCodium** (VS Code without Microsoft branding or telemetry; bundling Microsoft's build isn't allowed by its license) |
 | Office | **LibreOffice** (Writer, Calc, Impress) |
 | Media | **VLC** |
@@ -90,7 +90,6 @@ Known issues:
 
 ## Open
 
-- Build Null Files, the Null Grid file manager, and swap it in for Dolphin
 - Gamer Mode: controller/WASD launcher like Steam's library and the Xbox home screen (design next)
 - Optional startup/shutdown sounds
 - Null Notes, Drive and Scribe as preinstalled apps

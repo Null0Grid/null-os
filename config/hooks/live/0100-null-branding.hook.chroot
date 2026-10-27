@@ -125,6 +125,17 @@ MIME
     printf '\n[General]\nBrowserApplication=%s\n' "$NG" >> /etc/xdg/kdeglobals
   fi
 
+  # Null File as the default file manager (folders, "open folder", taskbar)
+  NF=$(grep -lE '^Exec=.*null-file' /usr/share/applications/*.desktop 2>/dev/null | head -1 || true)
+  if [ -n "$NF" ]; then
+    NF=$(basename "$NF")
+    touch /etc/xdg/mimeapps.list
+    grep -q '^\[Default Applications\]' /etc/xdg/mimeapps.list || printf '[Default Applications]\n' >> /etc/xdg/mimeapps.list
+    sed -i "/^\[Default Applications\]/a inode/directory=$NF" /etc/xdg/mimeapps.list
+  else
+    echo "WARNING: Null File not installed; no default file manager set" >&2
+  fi
+
   # Flathub in Discover
   flatpak remote-add --system --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo || true
 

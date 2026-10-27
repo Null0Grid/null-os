@@ -9,6 +9,7 @@ Shots taken:
   02-boot-NN          every 3 s during boot (Plymouth startup animation)
   03-desktop          Plasma live desktop
   04-start-menu       start menu open
+  04b-null-file       Null File, the default file manager
   05-terminal         Konsole: two-line prompt, null-info, a failed command
   05b-fastfetch       fastfetch with the Null OS logo
   05c-shortcut-offer  "Add to desktop?" notification after an app install
@@ -132,6 +133,17 @@ def main():
         time.sleep(4)
         shot("04-start-menu")
         key("esc")
+        time.sleep(2)
+
+        # Null File, the default file manager
+        key("meta_l")
+        time.sleep(2)
+        type_text("null file")
+        time.sleep(2)
+        key("ret")
+        time.sleep(8)
+        shot("04b-null-file")
+        key("alt-f4")
         time.sleep(2)
 
         key("ctrl-alt-t")

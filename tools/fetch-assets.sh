@@ -55,16 +55,20 @@ else
   sed -i '/^codium$/d' config/package-lists/desktop.list.chroot 2>/dev/null || true
 fi
 
-echo ">> Null Grid browser: latest release .deb (optional)"
+# Null Grid apps: newest amd64 .deb from each repo's latest GitHub release
 mkdir -p config/packages.chroot
 rm -f config/packages.chroot/*.deb
-if fetch "$WORK/rel.json" https://api.github.com/repos/Null0Grid/node-grid/releases/latest; then
-  URL=$(jq -r '.assets[] | select(.name | test("(amd64|x86_64).*\\.deb$")) | .browser_download_url' "$WORK/rel.json" | head -1)
-  if [ -n "$URL" ] && fetch "config/packages.chroot/$(basename "$URL")" "$URL"; then
-    echo "   $(basename "$URL")"
+for repo in node-grid null-file; do
+  echo ">> Null Grid app $repo: latest release .deb (optional)"
+  if fetch "$WORK/rel-$repo.json" "https://api.github.com/repos/Null0Grid/$repo/releases/latest"; then
+    URL=$(jq -r '.assets[] | select(.name | test("(amd64|x86_64).*\\.deb$")) | .browser_download_url' "$WORK/rel-$repo.json" | head -1)
+    NAME=$(basename "$URL" | tr ' ' '_')
+    if [ -n "$URL" ] && fetch "config/packages.chroot/$NAME" "$URL"; then
+      echo "   $NAME"
+    else
+      echo "   WARNING: no amd64 .deb in the latest $repo release; building without it"
+    fi
   else
-    echo "   WARNING: no amd64 .deb in the latest node-grid release; building without it"
+    echo "   WARNING: GitHub API unavailable; building without $repo"
   fi
-else
-  echo "   WARNING: GitHub API unavailable; building without the Null Grid browser"
-fi
+done
