@@ -84,5 +84,15 @@ jobs:
           fi
           PRE=""
           [ "${{ inputs.prerelease }}" = true ] && PRE="--prerelease"
-          gh release create "$TAG" iso/* -R "${{ github.repository }}" \
-            --target "$SHA" --title "Null OS ${TAG#v}" --notes-file notes.md $PRE
+          for try in 1 2 3; do
+            if gh release create "$TAG" iso/* -R "${{ github.repository }}" \
+                 --target "$SHA" --title "Null OS ${TAG#v}" --notes-file notes.md $PRE 2> err.txt; then
+              exit 0
+            fi
+            echo "::warning::release create try $try: $(tr '\n' ' ' < err.txt)"
+            # A half-made release from a failed try is removed before retrying
+            gh release delete "$TAG" -R "${{ github.repository }}" --cleanup-tag -y 2>/dev/null || true
+            sleep 20
+          done
+          echo "::error::release create failed: $(tr '\n' ' ' < err.txt)"
+          exit 1
