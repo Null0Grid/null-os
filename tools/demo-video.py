@@ -328,7 +328,7 @@ def record(iso, work):
                     "-c:v", "libx264", "-preset", "veryfast", "-crf", "16", os.path.join(work, "raw.mkv")], check=True)
     with open(os.path.join(work, "scenes.json"), "w") as f:
         json.dump(sc.items, f, indent=2)
-    log(f"recorded {len(sc.items)} scenes -> {raw}")
+    log(f"recorded {len(sc.items)} scenes -> {os.path.join(work, 'raw.mkv')}")
 
 
 # ---------------------------------------------------------------- edit

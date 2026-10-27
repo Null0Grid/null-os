@@ -45,10 +45,12 @@ jobs:
         timeout-minutes: 15
         run: python3 tools/demo-video.py record *.iso demo-work
       - name: Edit
+        if: always() && hashFiles('demo-work/raw.mkv') != ''
         env:
           DEMO_FONTS: demo-fonts
         run: python3 tools/demo-video.py edit demo-work null-os-demo.mp4
       - name: Upload video
+        if: always() && hashFiles('null-os-demo.mp4') != ''
         uses: actions/upload-artifact@v4
         with:
           name: null-os-demo
@@ -57,6 +59,7 @@ jobs:
             null-os-demo-poster.png
             demo-work/scenes.json
       - name: Publish to the demo branch
+        if: always() && hashFiles('null-os-demo.mp4') != ''
         run: |
           mkdir pub && cp null-os-demo.mp4 null-os-demo-poster.png pub/
           cd pub
