@@ -82,6 +82,13 @@ MIME
     [ -f "$d" ] && sed -i "s/^Name=.*/Name=Install $NULL_NAME/; s/^Name\[.*//" "$d"
   done
 
+  # SDDM: Null OS logo instead of the Debian one
+  for t in debian-breeze breeze; do
+    [ -d /usr/share/sddm/themes/$t ] || continue
+    printf '[General]\nshowlogo=shown\nlogo=/usr/share/null-os/sddm-logo.png\nbackground=/usr/share/desktop-base/nullos-theme/login/background.png\ntype=image\n' \
+      > /usr/share/sddm/themes/$t/theme.conf.user
+  done
+
   systemctl enable sddm NetworkManager 2>/dev/null || true
 fi
 
@@ -99,6 +106,10 @@ systemctl enable ssh chrony docker lldpd 2>/dev/null || true
 sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config
 echo 'unattended-upgrades unattended-upgrades/enable_auto_updates boolean true' | debconf-set-selections
 dpkg-reconfigure -f noninteractive unattended-upgrades || true
-sed -i 's/^#\?EXTRA_GROUPS=.*/EXTRA_GROUPS="docker wireshark"/; s/^#\?ADD_EXTRA_GROUPS=.*/ADD_EXTRA_GROUPS=1/' /etc/adduser.conf
+# Note: don't set EXTRA_GROUPS in adduser.conf. A group that doesn't exist
+# (wireshark is only created when dumpcap is setuid) makes adduser fail,
+# which silently breaks creation of the live user. The live user gets its
+# groups from live-config.user-default-groups instead.
+groupadd -f wireshark
 
 chmod +x /usr/local/bin/null-info

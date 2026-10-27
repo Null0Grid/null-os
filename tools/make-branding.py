@@ -188,6 +188,14 @@ def desktop_base_theme(wallpaper_png, login_png):
     shutil.copy(login_png, out(*base, "login", "background.png"))
 
 
+def sddm_logo_svg(w=420, h=110):
+    """Logo for the SDDM login and idle screen: mark + NULL OS, transparent."""
+    return (f'<svg xmlns="http://www.w3.org/2000/svg" width="{w}" height="{h}" viewBox="0 0 {w} {h}">'
+            + mark_group(6, 2, 88, CYAN) +
+            f'<text x="112" y="70" font-family="Silkscreen, monospace" font-size="40" letter-spacing="8" fill="#ffffff">NULL OS</text>'
+            '</svg>')
+
+
 def main():
     logo = logo_svg()
     open(out("branding", "null-mark.svg"), "w").write(logo)
@@ -207,6 +215,8 @@ def main():
     cairosvg.svg2png(bytestring=boot_splash_svg().encode(), write_to=splash_png)
     with open(out("branding", "boot-splash.svg"), "w") as f:
         f.write(embed_png_svg(splash_png, 640, 480))
+    cairosvg.svg2png(bytestring=sddm_logo_svg().encode(),
+                     write_to=out("config/includes.chroot/usr/share/null-os/sddm-logo.png"))
     print("branding written")
 
 

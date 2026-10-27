@@ -43,6 +43,10 @@ for src in /usr/share/live/build/bootloaders/*/; do
   rm -rf "config/bootloaders/$d"
   cp -a "$src" "config/bootloaders/$d"
 done
+# live-build looks for a custom splash at the top of config/bootloaders
+cp branding/boot-splash.svg config/bootloaders/splash.svg
+cp branding/boot-splash.svg config/bootloaders/splash.svg.in
+cp branding/boot-splash.png config/bootloaders/splash.png
 # Every splash variant, whatever live-build calls it
 find config/bootloaders -iname 'splash*.svg*' -exec cp branding/boot-splash.svg {} \;
 find config/bootloaders -iname 'splash*.png'  -exec cp branding/boot-splash.png {} \;
@@ -52,6 +56,8 @@ find config/bootloaders -name 'stdmenu.cfg' -exec sed -i \
 # Visible in the CI run summary, to check what got replaced
 echo "::notice title=bootloader-splash::$(cd config/bootloaders && find . -iname '*splash*' | tr '\n' ' ')"
 echo "::notice title=bootloader-dirs::$(ls config/bootloaders | tr '\n' ' ')"
+echo "::notice title=splash-files::$(find /usr/share/live /usr/lib/live -iname '*splash*' 2>/dev/null | tr '\n' ' ')"
+grep -rn "splash" /usr/lib/live/build/binary_syslinux 2>/dev/null | head -6 | while IFS= read -r l; do echo "::notice title=binary_syslinux::${l:0:400}"; done || true
 
 echo ">> Building (30-60 min depending on mirror speed)"
 lb build
