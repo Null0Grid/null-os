@@ -8,6 +8,10 @@ on:
       run_id:
         description: "Build run ID whose ISO to boot"
         required: true
+      debug:
+        description: "Root-shell diagnostics (1 = on)"
+        required: false
+        default: "0"
 
 jobs:
   screenshots:
@@ -33,6 +37,8 @@ jobs:
       - name: Boot ISO and take screenshots
         timeout-minutes: 20
         continue-on-error: true
+        env:
+          NULL_VM_DEBUG: ${{ inputs.debug }}
         run: python3 tools/vm-screenshots.py *.iso shots
       - name: Publish screenshots to the screenshots branch
         if: always()

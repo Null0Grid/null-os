@@ -71,10 +71,27 @@ A ring crossed by two parallel slashes (echoes the Null Grid `//` family mark).
 | USB | Live persistence (`tools/make-usb.sh` adds the partition) |
 | Live session | User `user` / `live`, auto-login straight into Plasma |
 
+## Status (v0.2, verified in a VM on every build)
+
+Working: Null OS boot menu, glitch startup animation, live auto-login into
+Plasma, Null OS wallpaper / colors / NullLine icons / Silkscreen titles,
+Null Grid browser as the default, Konsole two-line prompt with the Null
+mark, `@` fallback on the console, red root prompt, "Install Null OS"
+launcher, Null OS login screen and logo, `null-info` reports Null OS.
+
+Known issues:
+- **Shutdown animation freezes on its first frame during a real shutdown
+  in the VM.** Run by hand it plays fully (glitch, CRT collapse), so the
+  theme works; the freeze looks like the VM's graphics handoff at power-off.
+  Needs a test on real hardware.
+- Calamares installer and the firewall's first-boot setup aren't exercised by
+  the VM test yet.
+
 ## Open
 
 - File manager (Dolphin for now)
 - Optional startup/shutdown sounds
 - Null Notes, Drive and Scribe as preinstalled apps
 - Fully custom SDDM theme and Calamares slideshow
+- Start-menu button showing the Null mark
 - Own signed apt repo for Null OS packages

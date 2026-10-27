@@ -5,16 +5,16 @@ Usage: vm-screenshots.py <iso> <out-dir>
 Needs: qemu-system-x86_64, python3-pil. Uses KVM when /dev/kvm is usable.
 
 Shots taken:
-  01-boot-menu       ISO boot menu
-  02-boot-NN         every 3 s during boot (Plymouth startup animation)
-  04-desktop         Plasma live desktop
-  05-start-menu      start menu open
-  06-terminal        Konsole: two-line prompt, null-info, a failed command
-  07-root            root prompt (red frame)
-  08-tty-prompt      text console login: prompt with the @ fallback
-  09-diagnostics     auto-login and Plymouth diagnostics
-  14-shutdown-fast-NN Plymouth shutdown animation, every 0.4 s
-  11-13 debug-*      root debug shell: live user, journal, PAM (test only)
+  01-boot-menu        ISO boot menu
+  02-boot-NN          every 3 s during boot (Plymouth startup animation)
+  03-desktop          Plasma live desktop
+  04-start-menu       start menu open
+  05-terminal         Konsole: two-line prompt, null-info, a failed command
+  06-root             root prompt (red frame)
+  07-console-prompt   text console: prompt with the @ fallback
+  08-shutdown-NN      Plymouth shutdown, every 0.4 s
+With NULL_VM_DEBUG=1: a root debug shell on tty9 and 9x-debug-* shots
+(live user, journal, theme, shutdown splash run by hand).
 """
 import os
 import socket
@@ -29,6 +29,7 @@ os.makedirs(OUT, exist_ok=True)
 MON = "/tmp/null-qemu-monitor.sock"
 KVM = os.access("/dev/kvm", os.R_OK | os.W_OK)
 SLOW = 1 if KVM else 4  # TCG emulation is much slower
+DEBUG = os.environ.get("NULL_VM_DEBUG") == "1"  # extra root-shell diagnostics
 
 # Character -> QEMU sendkey name
 KEYS = {" ": "spc", "-": "minus", "/": "slash", ".": "dot", "\n": "ret",
@@ -110,11 +111,12 @@ def main():
 
         wait(8, "boot menu")
         shot("01-boot-menu")
-        # Test-only: append a root debug shell on tty9 to the kernel line
-        # (doesn't change the ISO; only this VM boot)
-        key("tab")
-        time.sleep(1)
-        type_text(" systemd.debug-shell=1")
+        if DEBUG:
+            # Append a root debug shell on tty9 to the kernel line
+            # (only this VM boot; the ISO is unchanged)
+            key("tab")
+            time.sleep(1)
+            type_text(" systemd.debug-shell=1")
         key("ret")
 
         for n in range(12):
@@ -122,11 +124,11 @@ def main():
             shot(f"02-boot-{n:02d}")
 
         wait(120, "live boot into Plasma")
-        shot("04-desktop")
+        shot("03-desktop")
 
         key("meta_l")
         time.sleep(4)
-        shot("05-start-menu")
+        shot("04-start-menu")
         key("esc")
         time.sleep(2)
 
@@ -138,64 +140,48 @@ def main():
         time.sleep(1)
         type_text("nope\n")
         time.sleep(2)
-        shot("06-terminal")
+        shot("05-terminal")
         type_text("sudo -i\n")
         time.sleep(3)
-        shot("07-root")
+        shot("06-root")
         type_text("exit\n")
         time.sleep(1)
 
-        # Text console: real prompt with the @ fallback, plus diagnostics
+        # Text console: the prompt with the @ fallback
         key("ctrl-alt-f3")
         time.sleep(4)
-        type_text("user\n")
-        time.sleep(2)
-        type_text("live\n")
-        time.sleep(5)
         type_text("null-info\n")
         time.sleep(2)
         type_text("nope\n")
         time.sleep(2)
-        shot("08-tty-prompt")
-        type_text("clear; ls /usr/lib/live/config | tail -4; cat /etc/sddm.conf.d/*.conf | grep -v '^$'; "
-                  "sudo journalctl -b --no-pager -u sddm | tail -12; cat /proc/cmdline; "
-                  "plymouth-set-default-theme 2>/dev/null\n")
-        time.sleep(5)
-        shot("09-diagnostics")
+        shot("07-console-prompt")
 
-        # Root debug shell (tty9): look at the live user and live-config
-        key("ctrl-alt-f9")
-        time.sleep(3)
-        type_text("clear; getent passwd user; passwd -S user; id user; "
-                  "ls /var/lib/live/config | tr '\\n' ' '; echo; "
-                  "tail -n 15 /var/log/live/config.log\n")
-        time.sleep(4)
-        shot("11-debug-user")
-        type_text("clear; journalctl -b --no-pager | grep -iE 'pam|login|sddm|autologin|user-setup|live-config' | tail -n 30\n")
-        time.sleep(5)
-        shot("12-debug-journal")
-        type_text("clear; head -n 3 /etc/os-release; ls /usr/share/plasma/look-and-feel; "
-                  "grep -hE 'LookAndFeel|ColorScheme|^Theme' /etc/xdg/kdeglobals /home/user/.config/kdeglobals; "
-                  "ls -d /usr/share/icons/NullLine /usr/share/wallpapers/NullOS; "
-                  "grep -h Image /home/user/.config/plasma-org.kde.plasma.desktop-appletsrc | head -n 3\n")
-        time.sleep(3)
-        shot("13-debug-theme")
-        # Shutdown splash test while the system is still up (test only)
-        type_text("clear; plymouthd --mode=shutdown; plymouth --show-splash; sleep 7; plymouth --quit\n")
-        for n in range(14):
+        if DEBUG:
+            key("ctrl-alt-f9")
+            time.sleep(3)
+            type_text("clear; getent passwd user; id user; tail -n 15 /var/log/live/config.log\n")
+            time.sleep(4)
+            shot("90-debug-user")
+            type_text("clear; journalctl -b --no-pager | grep -iE 'pam|login|sddm|user-setup|live-config' | tail -n 30\n")
+            time.sleep(5)
+            shot("91-debug-journal")
+            type_text("clear; head -n 3 /etc/os-release; ls /usr/share/plasma/look-and-feel; "
+                      "grep -hE 'LookAndFeel|ColorScheme|^Theme' /etc/xdg/kdeglobals /home/user/.config/kdeglobals\n")
+            time.sleep(3)
+            shot("92-debug-theme")
+            # Shutdown splash while the system is still up
+            type_text("clear; plymouthd --mode=shutdown; plymouth --show-splash; sleep 7; plymouth --quit\n")
+            for n in range(14):
+                time.sleep(0.4)
+                shot(f"93-splash-test-{n:02d}")
+            time.sleep(4)
+            key("ctrl-alt-f3")
+            time.sleep(1)
+
+        type_text("sudo poweroff\n")
+        for n in range(15):
             time.sleep(0.4)
-            shot(f"15-splash-test-{n:02d}")
-        time.sleep(4)
-        key("ctrl-alt-f9")
-        time.sleep(1)
-        type_text("clear; ls /usr/share/plymouth/themes/null | wc -l; plymouth-set-default-theme; "
-                  "journalctl -b --no-pager -t plymouthd | tail -n 10\n")
-        time.sleep(3)
-        shot("16-splash-info")
-        type_text("poweroff\n")
-        for n in range(20):
-            time.sleep(0.4)
-            shot(f"14-shutdown-fast-{n:02d}")
+            shot(f"08-shutdown-{n:02d}")
         time.sleep(5)
     finally:
         vm.terminate()

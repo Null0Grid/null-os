@@ -46,6 +46,10 @@ This writes the ISO and adds a `persistence` partition in the leftover space. A 
 
 A build takes 30–60 minutes and needs about 15 GB of free disk.
 
+## Testing
+
+Every build boots the ISO in a QEMU VM on GitHub Actions and publishes screenshots to the `screenshots` branch (`tools/vm-screenshots.py`). To re-test an existing ISO without rebuilding, run **Actions → Screenshots only** with the build's run ID. Set `debug` to `1` for a root debug shell and diagnostics shots.
+
 ## Customize
 
 | Want to change | Edit |
@@ -67,7 +71,7 @@ The mark is defined once, as geometry, in `null-mark.py`. At image build time `p
 
 ## Roadmap
 
-- [ ] First successful CI build and screenshot review
+- [x] First successful CI build and screenshot review
 - [x] Plymouth startup and shutdown animations
 - [ ] Custom GTK/xfwm4 theme (currently Adwaita-dark with accent overrides)
 - [ ] Null apps (Null Search, Null Notes) as optional packages
