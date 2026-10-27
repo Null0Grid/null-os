@@ -1,0 +1,74 @@
+name: Demo video
+
+# Boot an existing Null OS ISO in a VM, record a scripted tour of the real
+# screen, then cut it into a captioned demo (tools/demo-video.py).
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: "Build run ID whose ISO to record"
+        required: true
+
+jobs:
+  demo:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: null-os-iso
+          run-id: ${{ inputs.run_id }}
+          github-token: ${{ github.token }}
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Install QEMU, Xvfb and ffmpeg
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq qemu-system-x86 qemu-system-gui xvfb ffmpeg python3-pil python3-fonttools python3-brotli
+      - name: Fonts (Silkscreen and VT323 from the Null Grid browser)
+        run: |
+          git clone -q --depth 1 https://github.com/Null0Grid/node-grid /tmp/ng
+          mkdir -p demo-fonts
+          python3 -c "
+          from fontTools.ttLib import TTFont
+          for n, o in (('silkscreen', 'Silkscreen-Regular.ttf'), ('vt323', 'VT323-Regular.ttf')):
+              f = TTFont('/tmp/ng/fonts/%s.woff2' % n); f.flavor = None; f.save('demo-fonts/' + o)
+          "
+      - name: Record the tour
+        timeout-minutes: 15
+        env:
+          SDL_VIDEODRIVER: x11
+        run: |
+          Xvfb :99 -screen 0 1280x800x24 -nolisten tcp &
+          sleep 2
+          DISPLAY=:99 python3 tools/demo-video.py record *.iso demo-work
+      - name: Edit
+        env:
+          DEMO_FONTS: demo-fonts
+        run: python3 tools/demo-video.py edit demo-work null-os-demo.mp4
+      - name: Upload video
+        uses: actions/upload-artifact@v4
+        with:
+          name: null-os-demo
+          path: |
+            null-os-demo.mp4
+            null-os-demo-poster.png
+            demo-work/scenes.json
+      - name: Publish to the demo branch
+        run: |
+          mkdir pub && cp null-os-demo.mp4 null-os-demo-poster.png pub/
+          cd pub
+          git init -q -b demo
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          printf '# Null OS demo\n\nRecorded from build run %s on %s.\n\n![poster](null-os-demo-poster.png)\n\n[Watch null-os-demo.mp4](null-os-demo.mp4)\n' "${{ inputs.run_id }}" "$(date -u +%F)" > README.md
+          git add -A
+          git commit -q -m "Demo video from run ${{ inputs.run_id }}"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" demo
