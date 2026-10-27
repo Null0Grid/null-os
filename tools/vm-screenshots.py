@@ -14,6 +14,7 @@ Shots taken:
   08-tty-prompt      text console login: prompt with the @ fallback
   09-diagnostics     auto-login and Plymouth diagnostics
   10-shutdown-NN     Plymouth shutdown animation
+  11-13 debug-*      root debug shell: live user, journal, PAM (test only)
 """
 import os
 import socket
@@ -34,7 +35,8 @@ KEYS = {" ": "spc", "-": "minus", "/": "slash", ".": "dot", "\n": "ret",
         "_": "shift-minus", "~": "shift-grave_accent", "|": "shift-backslash",
         "=": "equal", ":": "shift-semicolon", ">": "shift-dot",
         ";": "semicolon", "*": "shift-8", "'": "apostrophe", ",": "comma",
-        "^": "shift-6", "$": "shift-4", "!": "shift-1", "#": "shift-3"}
+        "^": "shift-6", "$": "shift-4", "!": "shift-1", "#": "shift-3",
+        "\\": "backslash"}
 
 
 def log(msg):
@@ -101,6 +103,11 @@ def main():
 
         wait(8, "boot menu")
         shot("01-boot-menu")
+        # Test-only: append a root debug shell on tty9 to the kernel line
+        # (doesn't change the ISO; only this VM boot)
+        key("tab")
+        time.sleep(1)
+        type_text(" systemd.debug-shell=1")
         key("ret")
 
         for n in range(12):
@@ -149,7 +156,21 @@ def main():
         time.sleep(5)
         shot("09-diagnostics")
 
-        type_text("sudo poweroff\n")
+        # Root debug shell (tty9): look at the live user and live-config
+        key("ctrl-alt-f9")
+        time.sleep(3)
+        type_text("clear; getent passwd user; passwd -S user; id user; "
+                  "ls /var/lib/live/config | tr '\\n' ' '; echo; "
+                  "tail -n 15 /var/log/live/config.log\n")
+        time.sleep(4)
+        shot("11-debug-user")
+        type_text("clear; journalctl -b --no-pager | grep -iE 'pam|login|sddm|autologin|user-setup|live-config' | tail -n 30\n")
+        time.sleep(5)
+        shot("12-debug-journal")
+        type_text("clear; ls -la /usr/lib/user-setup /etc/sddm.conf.d; cat /etc/pam.d/sddm-autologin | grep -v '^#'\n")
+        time.sleep(3)
+        shot("13-debug-pam")
+        type_text("poweroff\n")
         for n in range(5):
             time.sleep(1.5)
             shot(f"10-shutdown-{n:02d}")
