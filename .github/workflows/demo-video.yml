@@ -51,6 +51,7 @@ jobs:
         run: python3 tools/demo-video.py edit demo-work null-os-demo.mp4
       - name: Upload video
         if: always() && hashFiles('null-os-demo.mp4') != ''
+        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: null-os-demo

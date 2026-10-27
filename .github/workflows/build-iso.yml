@@ -5,6 +5,11 @@ on:
     branches: [main]
     tags: ['v*']
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Also put the ISO on this existing release (e.g. 1.1.0)"
+        required: false
+        default: ""
 
 jobs:
   build:
@@ -22,14 +27,38 @@ jobs:
           set -o pipefail
           ./build.sh 2>&1 | tee build-full.log
       - name: Upload ISO
+        # Each ISO is ~2 GB of Actions storage, so keep it only briefly; a
+        # full quota must not fail the build (the release copy is the keeper)
+        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: null-os-iso
           path: |
             *.iso
             *.sha256
-          retention-days: 14
+          retention-days: 2
           compression-level: 0
+      - name: Put the ISO on the release
+        if: inputs.release_tag != ''
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.release_tag }}
+        run: |
+          set -euo pipefail
+          apt-get install -y -qq gh >/dev/null
+          git config --global --add safe.directory "$PWD"
+          R="${{ github.repository }}"
+          ISO=$(ls *.iso | head -1)
+          [ -f "$ISO.sha256" ] || sha256sum "$ISO" > "$ISO.sha256"
+          if [ "$(stat -c %s "$ISO")" -ge 2147483648 ]; then
+            echo "::error::$ISO is over 2 GiB, too big for a release file"; exit 1
+          fi
+          for a in $(gh release view "$TAG" -R "$R" --json assets --jq '.assets[].name'); do
+            gh release delete-asset "$TAG" "$a" -R "$R" -y
+          done
+          gh release upload "$TAG" "$ISO" "$ISO.sha256" -R "$R" --clobber
+          echo "::notice::$ISO is on release $TAG"
       - name: Upload build log on failure
         if: failure()
         uses: actions/upload-artifact@v4
@@ -67,8 +96,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
+        continue-on-error: true
         with:
           name: null-os-iso
+      - name: ISO from the release (when there's no artifact)
+        if: inputs.release_tag != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: ls *.iso 2>/dev/null || gh release download "${{ inputs.release_tag }}" -R "${{ github.repository }}" -p '*.iso'
       - name: Enable KVM
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm.rules
@@ -81,6 +116,7 @@ jobs:
         continue-on-error: true
         run: python3 tools/vm-screenshots.py *.iso shots
       - name: Upload screenshots
+        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: screenshots
