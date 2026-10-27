@@ -171,7 +171,7 @@ fi
 systemctl enable null-firewall-setup.service 2>/dev/null || true
 
 # ---- Services and defaults ----
-systemctl enable ssh chrony docker lldpd 2>/dev/null || true
+systemctl enable ssh chrony lldpd 2>/dev/null || true
 sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config
 echo 'unattended-upgrades unattended-upgrades/enable_auto_updates boolean true' | debconf-set-selections
 dpkg-reconfigure -f noninteractive unattended-upgrades || true

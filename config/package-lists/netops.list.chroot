@@ -25,6 +25,4 @@ minicom
 picocom
 snmp
 # Containers / virtualization
-docker.io
-docker-compose
 qemu-guest-agent

@@ -54,11 +54,11 @@ A ring crossed by two parallel slashes (echoes the Null Grid `//` family mark).
 | File manager | **Null File** (Null Grid app, Tauri), latest `.deb` from Null0Grid/null-file releases; default for folders; updates through its signed apt repo |
 | Gamer Mode | **NULL // PLAY** is not on the ISO: installed separately after Null OS (its .deb from Null0Grid/null-play releases). Its package brings its own entry points: `gamemode` command, desktop right-click entry, Super+G; Null OS offers the desktop shortcut on install |
 | Code editor | **VSCodium** (VS Code without Microsoft branding or telemetry; bundling Microsoft's build isn't allowed by its license) |
-| Office | **LibreOffice** (Writer, Calc, Impress) |
+| Office | Not preinstalled (keeps the ISO under 2 GB); LibreOffice is one click in Discover |
 | Media | **VLC** |
 | Images / PDF | Gwenview, Okular |
 | Network toolkit | nmap, tcpdump, Wireshark, iperf3, mtr, dnsutils, lldpd, ethtool, nftables, wireguard-tools, arp-scan, ipcalc, snmp, minicom, picocom, Remmina |
-| Containers | Docker plus Compose |
+| Containers | Not preinstalled; `sudo apt install docker.io docker-compose` |
 | Null apps | Browser only for now (Notes, Drive, Scribe later) |
 | Desktop shortcuts | `null-shortcuts` asks "Add to desktop?" when a new app is installed (apt, Flatpak, Steam games); **Null OS Settings** picks Original or NullLine icons and turns the prompt on or off |
 

@@ -16,5 +16,5 @@ lb config noauto \
   --iso-application "$DISTRO_NAME" \
   --iso-volume "$(echo "$DISTRO_ID" | tr a-z A-Z)_$DISTRO_VERSION" \
   --iso-publisher "$DISTRO_NAME" \
-  --bootappend-live "boot=live components hostname=$DISTRO_HOSTNAME username=user live-config.user-default-groups=audio,cdrom,dip,floppy,video,plugdev,netdev,sudo,docker,wireshark persistence quiet splash" \
+  --bootappend-live "boot=live components hostname=$DISTRO_HOSTNAME username=user live-config.user-default-groups=audio,cdrom,dip,floppy,video,plugdev,netdev,sudo,wireshark persistence quiet splash" \
   "$@"

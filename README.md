@@ -14,10 +14,10 @@ Every design decision is in **[DESIGN.md](DESIGN.md)**. Screenshots from the lat
 
 - **Desktop:** KDE Plasma 6, Windows-style taskbar, Null Lab color scheme, **NullLine** white line icons (BeautyLine recolored), Silkscreen titles and Inter text.
 - **Startup and shutdown:** a glitchy Plymouth startup and a CRT power-off shutdown. Previews are in `branding/preview/`.
-- **Apps:** Null Grid browser, Null File (file manager), Discover with Flathub, Konsole, VSCodium, LibreOffice, VLC, Gwenview, Okular.
+- **Apps:** Null Grid browser, Null File (file manager), Discover with Flathub, Konsole, VSCodium, VLC, Gwenview, Okular.
 - **Terminal:** zsh with autosuggestions and syntax highlighting, the two-line prompt, and Null Mono in Konsole.
 - **Network toolkit:** nmap, tcpdump, Wireshark, iperf3, mtr, dnsutils, lldpd, ethtool, nftables, wireguard-tools, arp-scan, ipcalc, snmp, minicom, picocom and Remmina.
-- **System:** Calamares graphical installer, firewall on (incoming blocked except SSH), Docker plus Compose, unattended security upgrades, live persistence for USB.
+- **System:** Calamares graphical installer, firewall on (incoming blocked except SSH), unattended security upgrades, live persistence for USB.
 
 Live session login: `user` / `live`, with passwordless sudo. Installed systems use the account you create in the installer.
 
