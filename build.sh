@@ -37,18 +37,21 @@ echo ">> Configuring ($DEBIAN_SUITE/$ARCH, desktop=$DESKTOP)"
 lb config
 
 echo ">> Null OS boot menu (replaces the Debian splash)"
-for d in isolinux syslinux_common grub-pc grub-efi; do
-  src=/usr/share/live/build/bootloaders/$d
-  [ -d "$src" ] || continue
-  rm -rf "config/bootloaders/$d"; mkdir -p config/bootloaders
+mkdir -p config/bootloaders
+for src in /usr/share/live/build/bootloaders/*/; do
+  d=$(basename "$src")
+  rm -rf "config/bootloaders/$d"
   cp -rL "$src" "config/bootloaders/$d"
-  find "config/bootloaders/$d" -name 'splash.svg.in' -exec cp branding/boot-splash.svg {} \;
-  find "config/bootloaders/$d" -name 'splash.svg'    -exec cp branding/boot-splash.svg {} \;
-  find "config/bootloaders/$d" -name 'splash.png'    -exec cp branding/boot-splash.png {} \;
-  # Menu highlight in Null cyan
-  find "config/bootloaders/$d" -name 'stdmenu.cfg' -exec sed -i \
-    -e 's/#76a1d0ff/#ff00e5ff/g' -e 's/^\(menu color sel \* \)#ffffffff/\1#ff0a0a0f/' {} \;
 done
+# Every splash variant, whatever live-build calls it
+find config/bootloaders -iname 'splash*.svg*' -exec cp branding/boot-splash.svg {} \;
+find config/bootloaders -iname 'splash*.png'  -exec cp branding/boot-splash.png {} \;
+# Menu highlight in Null cyan
+find config/bootloaders -name 'stdmenu.cfg' -exec sed -i \
+  -e 's/#76a1d0ff/#ff00e5ff/g' -e 's/^\(menu color sel \* \)#ffffffff/\1#ff0a0a0f/' {} \;
+# Visible in the CI run summary, to check what got replaced
+echo "::notice title=bootloader-splash::$(cd config/bootloaders && find . -iname '*splash*' | tr '\n' ' ')"
+echo "::notice title=bootloader-dirs::$(ls config/bootloaders | tr '\n' ' ')"
 
 echo ">> Building (30-60 min depending on mirror speed)"
 lb build

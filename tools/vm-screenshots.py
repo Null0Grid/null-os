@@ -5,14 +5,15 @@ Usage: vm-screenshots.py <iso> <out-dir>
 Needs: qemu-system-x86_64, python3-pil. Uses KVM when /dev/kvm is usable.
 
 Shots taken:
-  01-boot-menu      ISO boot menu
-  02-startup-glitch Plymouth startup, mid-glitch
-  03-startup-ready  Plymouth startup, loading
-  04-desktop        Plasma live desktop
-  05-start-menu     start menu open
-  06-terminal       Konsole: two-line prompt, null-info, a failed command
-  07-root           root prompt (red frame)
-  08-shutdown       Plymouth shutdown animation
+  01-boot-menu       ISO boot menu
+  02-boot-NN         every 3 s during boot (Plymouth startup animation)
+  04-desktop         Plasma live desktop
+  05-start-menu      start menu open
+  06-terminal        Konsole: two-line prompt, null-info, a failed command
+  07-root            root prompt (red frame)
+  08-tty-prompt      text console login: prompt with the @ fallback
+  09-diagnostics     auto-login and Plymouth diagnostics
+  10-shutdown-NN     Plymouth shutdown animation
 """
 import os
 import socket
@@ -31,7 +32,8 @@ SLOW = 1 if KVM else 4  # TCG emulation is much slower
 # Character -> QEMU sendkey name
 KEYS = {" ": "spc", "-": "minus", "/": "slash", ".": "dot", "\n": "ret",
         "_": "shift-minus", "~": "shift-grave_accent", "|": "shift-backslash",
-        "=": "equal", ":": "shift-semicolon", ">": "shift-dot"}
+        "=": "equal", ":": "shift-semicolon", ">": "shift-dot",
+        ";": "semicolon", "*": "shift-8", "'": "apostrophe", ",": "comma"}
 
 
 def log(msg):
@@ -100,12 +102,11 @@ def main():
         shot("01-boot-menu")
         key("ret")
 
-        time.sleep(4 * SLOW)
-        shot("02-startup-glitch")
-        time.sleep(4 * SLOW)
-        shot("03-startup-ready")
+        for n in range(12):
+            time.sleep(3 * SLOW)
+            shot(f"02-boot-{n:02d}")
 
-        wait(150, "live boot into Plasma")
+        wait(120, "live boot into Plasma")
         shot("04-desktop")
 
         key("meta_l")
@@ -123,14 +124,34 @@ def main():
         type_text("nope\n")
         time.sleep(2)
         shot("06-terminal")
-
         type_text("sudo -i\n")
         time.sleep(3)
         shot("07-root")
+        type_text("exit\n")
+        time.sleep(1)
 
-        type_text("poweroff\n")
-        time.sleep(3)
-        shot("08-shutdown")
+        # Text console: real prompt with the @ fallback, plus diagnostics
+        key("ctrl-alt-f3")
+        time.sleep(4)
+        type_text("user\n")
+        time.sleep(2)
+        type_text("live\n")
+        time.sleep(5)
+        type_text("null-info\n")
+        time.sleep(2)
+        type_text("nope\n")
+        time.sleep(2)
+        shot("08-tty-prompt")
+        type_text("clear; ls /usr/lib/live/config | tail -4; cat /etc/sddm.conf.d/*.conf | grep -v '^$'; "
+                  "sudo journalctl -b --no-pager -u sddm | tail -12; cat /proc/cmdline; "
+                  "plymouth-set-default-theme 2>/dev/null\n")
+        time.sleep(5)
+        shot("09-diagnostics")
+
+        type_text("sudo poweroff\n")
+        for n in range(5):
+            time.sleep(1.5)
+            shot(f"10-shutdown-{n:02d}")
         time.sleep(5)
     finally:
         vm.terminate()

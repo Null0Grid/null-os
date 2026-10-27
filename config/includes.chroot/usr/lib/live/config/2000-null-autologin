@@ -4,8 +4,8 @@
 USER_NAME=$(sed -n 's/.*username=\([^ ]*\).*/\1/p' /proc/cmdline)
 USER_NAME=${USER_NAME:-user}
 mkdir -p /etc/sddm.conf.d
-SESSION=plasma
-[ -f /usr/share/wayland-sessions/plasma.desktop ] || SESSION=plasmax11
+SESSION=plasma.desktop
+[ -f /usr/share/wayland-sessions/plasma.desktop ] || SESSION=plasmax11.desktop
 cat > /etc/sddm.conf.d/50-null-live-autologin.conf <<CONF
 [Autologin]
 User=$USER_NAME
