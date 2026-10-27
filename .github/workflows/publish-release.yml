@@ -12,7 +12,7 @@ on:
         description: "Build ISO run id to publish"
         required: true
       tag:
-        description: "Release tag (e.g. v0.2)"
+        description: "Release tag (e.g. 1.1.0)"
         required: true
       prerelease:
         description: "Mark as pre-release"

@@ -33,7 +33,7 @@ Tagging a release (`git tag v0.1 && git push --tags`) also attaches the ISO to a
 ## Put it on a USB stick
 
 ```
-sudo tools/make-usb.sh nullos-0.2-trixie-amd64.iso /dev/sdX
+sudo tools/make-usb.sh nullos-1.1.0-trixie-amd64.iso /dev/sdX
 ```
 This writes the ISO and adds a `persistence` partition in the leftover space. A plain `dd` or balenaEtcher also works, but without persistence.
 
