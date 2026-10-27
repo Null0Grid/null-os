@@ -14,6 +14,7 @@ Shots taken:
   05-terminal         Konsole: two-line prompt, null-info, a failed command
   05b-fastfetch       fastfetch with the Null OS logo
   05c-shortcut-offer  "Add to desktop?" notification after an app install
+  05c2-show-in-folder Null File answering "Show in folder" (FileManager1 D-Bus)
   05d-gamemode        NULL // PLAY opened with the `gamemode` command
   05e-super-g         NULL // PLAY opened with Super+G
   06-root             root prompt (red frame)
@@ -174,6 +175,13 @@ def main():
         type_text("mkdir -p ~/.local/share/applications; cp /usr/share/applications/vlc.desktop ~/.local/share/applications/demo-app.desktop\n")
         time.sleep(7)
         shot("05c-shortcut-offer")
+        # "Show in folder": what browsers and editors ask the file manager
+        type_text("clear; dbus-send --session --print-reply --dest=org.freedesktop.FileManager1 "
+                  "/org/freedesktop/FileManager1 org.freedesktop.FileManager1.ShowItems "
+                  "array:string:file:///etc/hostname string:; sleep 12; pkill -f null-file\n")
+        time.sleep(9)
+        shot("05c2-show-in-folder")
+        time.sleep(6)
         # NULL // PLAY: the `gamemode` command, then Super+G. Konsole closes
         # it again after a while, so the next steps type into Konsole.
         type_text("clear; gamemode & sleep 16; pkill -f null-play\n")
