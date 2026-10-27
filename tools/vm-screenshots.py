@@ -33,7 +33,8 @@ SLOW = 1 if KVM else 4  # TCG emulation is much slower
 KEYS = {" ": "spc", "-": "minus", "/": "slash", ".": "dot", "\n": "ret",
         "_": "shift-minus", "~": "shift-grave_accent", "|": "shift-backslash",
         "=": "equal", ":": "shift-semicolon", ">": "shift-dot",
-        ";": "semicolon", "*": "shift-8", "'": "apostrophe", ",": "comma"}
+        ";": "semicolon", "*": "shift-8", "'": "apostrophe", ",": "comma",
+        "^": "shift-6", "$": "shift-4", "!": "shift-1", "#": "shift-3"}
 
 
 def log(msg):
