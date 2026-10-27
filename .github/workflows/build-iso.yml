@@ -17,7 +17,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Build ISO
-        run: ./build.sh
+        shell: bash
+        run: |
+          set -o pipefail
+          ./build.sh 2>&1 | tee build-full.log
       - name: Upload ISO
         uses: actions/upload-artifact@v4
         with:
@@ -39,10 +42,12 @@ jobs:
         run: |
           set +e
           mkdir -p /tmp/logs
-          cp build.log /tmp/logs/ 2>/dev/null
+          cp build.log build-full.log /tmp/logs/ 2>/dev/null
+          [ -f build.log ] || cp build-full.log build.log
           grep -nE '^(E:|P: Begin|ERROR)|Unable to locate|no installation candidate|Traceback|[Ee]rror' build.log | tail -80 > /tmp/logs/errors.txt
           tail -300 build.log > /tmp/logs/tail.txt
           # Annotations are readable through the API even when log downloads aren't
+          tail -6 build-full.log | while IFS= read -r line; do echo "::error title=build-output::${line:0:900}"; done
           tail -6 /tmp/logs/errors.txt | while IFS= read -r line; do echo "::error title=build-error::${line:0:900}"; done
           tail -4 /tmp/logs/tail.txt | while IFS= read -r line; do echo "::warning title=build-tail::${line:0:900}"; done
           apt-get install -y -qq git >/dev/null 2>&1 || (apt-get update -qq && apt-get install -y -qq git >/dev/null)

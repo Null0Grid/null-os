@@ -41,7 +41,7 @@ mkdir -p config/bootloaders
 for src in /usr/share/live/build/bootloaders/*/; do
   d=$(basename "$src")
   rm -rf "config/bootloaders/$d"
-  cp -rL "$src" "config/bootloaders/$d"
+  cp -a "$src" "config/bootloaders/$d"
 done
 # Every splash variant, whatever live-build calls it
 find config/bootloaders -iname 'splash*.svg*' -exec cp branding/boot-splash.svg {} \;
