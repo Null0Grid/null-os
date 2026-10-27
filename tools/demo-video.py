@@ -29,7 +29,8 @@ KEYS = {" ": "spc", "-": "minus", "/": "slash", ".": "dot", "\n": "ret",
         "_": "shift-minus", "~": "shift-grave_accent", "|": "shift-backslash",
         "=": "equal", ":": "shift-semicolon", ">": "shift-dot", ";": "semicolon",
         "*": "shift-8", "'": "apostrophe", ",": "comma", "^": "shift-6",
-        "$": "shift-4", "!": "shift-1", "#": "shift-3", "\\": "backslash"}
+        "$": "shift-4", "!": "shift-1", "#": "shift-3", "\\": "backslash",
+        "&": "shift-7", "(": "shift-9", ")": "shift-0", "\"": "shift-apostrophe"}
 
 
 def log(msg):
@@ -226,7 +227,7 @@ def record(iso, work):
         sc.start("desktop", "KDE PLASMA / NEON LAB", "null lab colors / nullline icons")
         time.sleep(4.5)
 
-        sc.start("start-menu", "START MENU", "null grid browser pinned first")
+        sc.start("start-menu", "START MENU", "the null mark / null grid pinned first")
         key("meta_l")
         time.sleep(2.5)
         type_text("node")
@@ -262,6 +263,13 @@ def record(iso, work):
         time.sleep(3)
         type_text("exit\n")
         time.sleep(1)
+        sc.start("fastfetch", "FASTFETCH", "null os 1.1.0 on a debian 13 base", speed=1.2)
+        type_text("clear; fastfetch\n")
+        time.sleep(4)
+        sc.start("shortcuts", "NEW APP? PIN IT", "every install asks: add to desktop", speed=1.2)
+        type_text("clear; mkdir -p ~/.local/share/applications; "
+                  "cp /usr/share/applications/vlc.desktop ~/.local/share/applications/demo-app.desktop\n")
+        time.sleep(7)
         sc.end()
         key("alt-f4")
         time.sleep(2)
@@ -287,6 +295,17 @@ def record(iso, work):
         sc.end()
         key("alt-f4")
         time.sleep(2)
+
+        # "Show in folder", the way browsers and editors ask for it
+        sc.start("reveal", "SHOW IN FOLDER", "any app can hand a file to null file", speed=1.2)
+        key("ctrl-alt-t")
+        time.sleep(3)
+        type_text("dbus-send --session --dest=org.freedesktop.FileManager1 /org/freedesktop/FileManager1 "
+                  "org.freedesktop.FileManager1.ShowItems array:string:file:///etc/hostname string: & "
+                  "sleep 9; pkill -f null-file; exit\n")
+        time.sleep(8)
+        sc.end()
+        time.sleep(3)
 
         sc.start("shutdown", "SHUTDOWN", "see you on the grid")
         key("ctrl-alt-t")
