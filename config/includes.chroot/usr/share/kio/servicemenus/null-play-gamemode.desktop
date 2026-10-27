@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Service
+MimeType=inode/directory;
+Actions=nullPlay;
+X-KDE-Priority=TopLevel
+X-KDE-StartupNotify=false
+
+# Right-click on the desktop (or a folder): open Gamer Mode
+[Desktop Action nullPlay]
+Name=Gamer Mode (NULL // PLAY)
+Icon=null-play
+Exec=null-play
