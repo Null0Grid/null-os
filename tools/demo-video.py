@@ -279,9 +279,13 @@ def record(iso, work):
         key("alt-f4")
         time.sleep(2)
 
-        sc.start("files", "NULL FILE", "the null grid file manager", speed=1.3)
+        # Null File's first start in a VM takes a while; record the wait
+        # fast and hold on the loaded window
+        sc.start("files", "NULL FILE", "the null grid file manager", speed=4.0)
         key("meta_l-3")
-        time.sleep(9)
+        time.sleep(16)
+        sc.start("files2", "NULL FILE", "grid / list / graph views", speed=1.0)
+        time.sleep(5)
         sc.end()
         key("alt-f4")
         time.sleep(2)
