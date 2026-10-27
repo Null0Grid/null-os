@@ -1,0 +1,83 @@
+name: Publish release from a build
+
+# Actions > Publish release > Run workflow: takes the ISO from an existing
+# Build ISO run and attaches it to a GitHub release (no rebuild). Release
+# files must be under 2 GiB, so a bigger ISO is attached in parts with
+# instructions to join them.
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: "Build ISO run id to publish"
+        required: true
+      tag:
+        description: "Release tag (e.g. v0.2)"
+        required: true
+      prerelease:
+        description: "Mark as pre-release"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TAG: ${{ inputs.tag }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: null-os-iso
+          run-id: ${{ inputs.run_id }}
+          github-token: ${{ github.token }}
+          path: iso
+      - name: Split if over 2 GiB
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd iso
+          ISO=$(ls *.iso | head -1)
+          ls -l
+          sha256sum "$ISO" > "$ISO.sha256"
+          SIZE=$(stat -c %s "$ISO")
+          if [ "$SIZE" -ge 2147483648 ]; then
+            split -b 1900M -d -a 1 "$ISO" "$ISO.part"
+            rm "$ISO"
+            echo "PARTS=yes" >> "$GITHUB_ENV"
+          fi
+          echo "ISO=$ISO" >> "$GITHUB_ENV"
+          ls -l
+      - name: Create release
+        shell: bash
+        run: |
+          set -euo pipefail
+          SHA=$(gh api "repos/${{ github.repository }}/actions/runs/${{ inputs.run_id }}" --jq .head_sha)
+          {
+            echo "Null OS ${TAG#v}: Debian 13 (trixie), KDE Plasma 6, Neon Lab."
+            echo
+            echo "Includes Null Grid (browser), Null File (file manager) and NULL // PLAY (Gamer Mode: Super+G or \`gamemode\`)."
+            echo
+            if [ "${PARTS:-}" = yes ]; then
+              echo "## Download"
+              echo "GitHub limits release files to 2 GB, so the ISO comes in parts. Download every \`.part\` file into one folder, then join them:"
+              echo
+              echo "- **Windows** (Command Prompt): \`copy /b $ISO.part0 + $ISO.part1 $ISO\`"
+              echo "- **Linux / macOS**: \`cat $ISO.part* > $ISO\`"
+              echo
+              echo "Check it against \`$ISO.sha256\` (Windows: \`certutil -hashfile $ISO SHA256\`)."
+              echo
+            fi
+            echo "## VirtualBox"
+            echo "Linux / Debian (64-bit), 4 GB RAM, 2+ CPUs, VMSVGA with 128 MB video memory, 3D off, 25 GB disk for the installer."
+            echo
+            echo "Built from $SHA (run ${{ inputs.run_id }})."
+          } > notes.md
+          PRE=""
+          [ "${{ inputs.prerelease }}" = true ] && PRE="--prerelease"
+          gh release create "$TAG" iso/* -R "${{ github.repository }}" \
+            --target "$SHA" --title "Null OS ${TAG#v}" --notes-file notes.md $PRE
