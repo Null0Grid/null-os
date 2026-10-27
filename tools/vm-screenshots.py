@@ -173,6 +173,18 @@ def main():
                   "grep -h Image /home/user/.config/plasma-org.kde.plasma.desktop-appletsrc | head -n 3\n")
         time.sleep(3)
         shot("13-debug-theme")
+        # Shutdown splash test while the system is still up (test only)
+        type_text("clear; plymouthd --mode=shutdown; plymouth --show-splash; sleep 7; plymouth --quit\n")
+        for n in range(14):
+            time.sleep(0.4)
+            shot(f"15-splash-test-{n:02d}")
+        time.sleep(4)
+        key("ctrl-alt-f9")
+        time.sleep(1)
+        type_text("clear; ls /usr/share/plymouth/themes/null | wc -l; plymouth-set-default-theme; "
+                  "journalctl -b --no-pager -t plymouthd | tail -n 10\n")
+        time.sleep(3)
+        shot("16-splash-info")
         type_text("poweroff\n")
         for n in range(20):
             time.sleep(0.4)
