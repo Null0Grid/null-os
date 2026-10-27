@@ -1,6 +1,6 @@
 # Null OS
 
-A Debian 13 (trixie) remix built for a USB stick: a light XFCE desktop in the Neon Lab style, zsh with a Kali-style two-line prompt, and a network engineer's toolkit preinstalled. It's still 100% Debian underneath, with no modified packages, so security updates come straight from Debian.
+A Debian 13 (trixie) desktop for a USB stick or a disk: KDE Plasma in the Neon Lab style, the Null Grid browser, zsh with a Kali-style two-line prompt, and a network engineer's toolkit preinstalled. It's still Debian underneath, with no modified packages, so security updates come straight from Debian.
 
 ```
 ┌──(luc⦻null)-[~/homelab]-[main]
@@ -8,17 +8,16 @@ A Debian 13 (trixie) remix built for a USB stick: a light XFCE desktop in the Ne
 ```
 *(The real prompt uses the Null mark, a ring with two parallel slashes, from the bundled Null Mono font. Over SSH or on the text console it falls back to `@`.)*
 
-Screenshots from the latest build are on the [`screenshots` branch](../../tree/screenshots).
+Every design decision is in **[DESIGN.md](DESIGN.md)**. Screenshots from the latest build are on the [`screenshots` branch](../../tree/screenshots).
 
 ## What's in it
 
-- **Desktop:** XFCE with Adwaita-dark, Papirus icons and Neon Lab accents. It includes Firefox ESR, Thunar, Wireshark, Remmina and NetworkManager.
-- **Terminal:** zsh by default with autosuggestions and syntax highlighting. The xfce4-terminal uses the Neon Lab palette and the **Null Mono** font.
-- **Prompt:** `┌──(user<mark>host)-[path]-[git branch]-[✗ exit code]` / `└─$`. The frame turns red as root.
-- **Network toolkit:** nmap, tcpdump, tshark, iperf3, mtr, dnsutils, lldpd, ethtool, nftables, wireguard-tools, arp-scan, ipcalc, snmp, minicom and picocom.
-- **Ops:** Docker plus Compose, SSH (root login disabled), chrony and unattended security upgrades.
-- **USB-first:** live boot with **persistence**, so your files and settings survive reboots. The Debian installer is included if you want it on disk.
-- **Branding:** wallpaper, login screen, GRUB background, `os-release` and `null-info`.
+- **Desktop:** KDE Plasma 6, Windows-style taskbar, Null Lab color scheme, **NullLine** white line icons (BeautyLine recolored), Silkscreen titles and Inter text.
+- **Startup and shutdown:** a glitchy Plymouth startup and a CRT power-off shutdown. Previews are in `branding/preview/`.
+- **Apps:** Null Grid browser, Discover with Flathub, Konsole, Dolphin, VSCodium, LibreOffice, VLC, Gwenview, Okular.
+- **Terminal:** zsh with autosuggestions and syntax highlighting, the two-line prompt, and Null Mono in Konsole.
+- **Network toolkit:** nmap, tcpdump, Wireshark, iperf3, mtr, dnsutils, lldpd, ethtool, nftables, wireguard-tools, arp-scan, ipcalc, snmp, minicom, picocom and Remmina.
+- **System:** Calamares graphical installer, firewall on (incoming blocked except SSH), Docker plus Compose, unattended security upgrades, live persistence for USB.
 
 Live session login: `user` / `live`, with passwordless sudo. Installed systems use the account you create in the installer.
 
@@ -34,7 +33,7 @@ Tagging a release (`git tag v0.1 && git push --tags`) also attaches the ISO to a
 ## Put it on a USB stick
 
 ```
-sudo tools/make-usb.sh nullos-0.1-trixie-amd64.iso /dev/sdX
+sudo tools/make-usb.sh nullos-0.2-trixie-amd64.iso /dev/sdX
 ```
 This writes the ISO and adds a `persistence` partition in the leftover space. A plain `dd` or balenaEtcher also works, but without persistence.
 
@@ -54,8 +53,10 @@ A build takes 30–60 minutes and needs about 15 GB of free disk.
 | Name, version, Debian release, desktop on/off | `null-os.conf` |
 | Packages | `config/package-lists/*.list.chroot`, `config/package-lists-optional/desktop.list.chroot` |
 | Prompt and shell | `config/includes.chroot/etc/skel/.zshrc` |
-| Terminal colors and font | `config/includes.chroot/etc/skel/.config/xfce4/terminal/terminalrc` |
-| Desktop defaults | `config/includes.chroot/etc/xdg/xfce4/xfconf/` |
+| Terminal colors and font | `config/includes.chroot/usr/share/konsole/` (NullOS.profile, NullLab.colorscheme) |
+| Desktop defaults | `config/includes.chroot/etc/xdg/kdeglobals`, `usr/share/color-schemes/NullLab.colors` |
+| Startup and shutdown animation | `python3 tools/make-plymouth.py` |
+| Icons | `tools/make-icons.py` (run at build time by `tools/fetch-assets.sh`) |
 | The Null mark | `config/includes.chroot/usr/share/null-os/null-mark.py` (single source for the font glyph and all images) |
 | Wallpaper, logo, GRUB image | `python3 tools/make-branding.py` (needs `pip install cairosvg`) |
 | Build-time scripts | `config/hooks/live/` |
@@ -67,7 +68,7 @@ The mark is defined once, as geometry, in `null-mark.py`. At image build time `p
 ## Roadmap
 
 - [ ] First successful CI build and screenshot review
-- [ ] Plymouth boot splash with the mark
+- [x] Plymouth startup and shutdown animations
 - [ ] Custom GTK/xfwm4 theme (currently Adwaita-dark with accent overrides)
 - [ ] Null apps (Null Search, Null Notes) as optional packages
 - [ ] Own signed apt repo for Null OS packages

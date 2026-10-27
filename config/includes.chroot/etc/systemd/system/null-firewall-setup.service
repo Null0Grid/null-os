@@ -1,0 +1,16 @@
+[Unit]
+Description=Null OS firewall defaults (block incoming except SSH)
+ConditionPathExists=!/var/lib/null-os/firewall-configured
+After=ufw.service
+Wants=ufw.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/sbin/ufw default deny incoming
+ExecStart=/usr/sbin/ufw default allow outgoing
+ExecStart=/usr/sbin/ufw allow OpenSSH
+ExecStart=/usr/sbin/ufw --force enable
+ExecStart=/bin/sh -c 'mkdir -p /var/lib/null-os && touch /var/lib/null-os/firewall-configured'
+
+[Install]
+WantedBy=multi-user.target

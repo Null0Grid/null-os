@@ -1,0 +1,8 @@
+[Plymouth Theme]
+Name=Null OS
+Description=Glitch startup and CRT shutdown for Null OS
+ModuleName=script
+
+[script]
+ImageDir=/usr/share/plymouth/themes/null
+ScriptFile=/usr/share/plymouth/themes/null/null.script

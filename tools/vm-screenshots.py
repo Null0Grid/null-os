@@ -5,10 +5,14 @@ Usage: vm-screenshots.py <iso> <out-dir>
 Needs: qemu-system-x86_64, python3-pil. Uses KVM when /dev/kvm is usable.
 
 Shots taken:
-  01-boot-menu   ISO boot menu
-  02-desktop     XFCE live desktop
-  03-terminal    terminal with the two-line prompt, null-info, an error
-  04-root        root prompt (red frame)
+  01-boot-menu      ISO boot menu
+  02-startup-glitch Plymouth startup, mid-glitch
+  03-startup-ready  Plymouth startup, loading
+  04-desktop        Plasma live desktop
+  05-start-menu     start menu open
+  06-terminal       Konsole: two-line prompt, null-info, a failed command
+  07-root           root prompt (red frame)
+  08-shutdown       Plymouth shutdown animation
 """
 import os
 import socket
@@ -60,10 +64,13 @@ def type_text(text):
 
 def shot(name):
     ppm = f"/tmp/{name}.ppm"
-    monitor(f"screendump {ppm}")
-    time.sleep(1)
-    Image.open(ppm).save(os.path.join(OUT, f"{name}.png"))
-    log(f"saved {name}.png")
+    try:
+        monitor(f"screendump {ppm}")
+        time.sleep(1)
+        Image.open(ppm).save(os.path.join(OUT, f"{name}.png"))
+        log(f"saved {name}.png")
+    except Exception as e:  # VM may already be off (shutdown shot)
+        log(f"could not take {name}: {e}")
 
 
 def wait(seconds, why):
@@ -76,7 +83,7 @@ def main():
         os.remove(MON)
     cmd = ["qemu-system-x86_64", "-m", "4096", "-smp", "2",
            "-cdrom", ISO, "-boot", "d",
-           "-vga", "std", "-display", "none",
+           "-vga", "virtio", "-display", "none",
            "-monitor", f"unix:{MON},server,nowait",
            "-nic", "user,model=virtio-net-pci"]
     if KVM:
@@ -93,22 +100,38 @@ def main():
         shot("01-boot-menu")
         key("ret")
 
-        wait(110, "live boot into XFCE")
-        shot("02-desktop")
+        time.sleep(4 * SLOW)
+        shot("02-startup-glitch")
+        time.sleep(4 * SLOW)
+        shot("03-startup-ready")
+
+        wait(150, "live boot into Plasma")
+        shot("04-desktop")
+
+        key("meta_l")
+        time.sleep(4)
+        shot("05-start-menu")
+        key("esc")
+        time.sleep(2)
 
         key("ctrl-alt-t")
-        wait(6, "terminal to open")
+        wait(8, "Konsole to open")
         type_text("null-info\n")
         time.sleep(2)
         type_text("cd /etc\n")
         time.sleep(1)
         type_text("nope\n")
         time.sleep(2)
-        shot("03-terminal")
+        shot("06-terminal")
 
         type_text("sudo -i\n")
         time.sleep(3)
-        shot("04-root")
+        shot("07-root")
+
+        type_text("poweroff\n")
+        time.sleep(3)
+        shot("08-shutdown")
+        time.sleep(5)
     finally:
         vm.terminate()
         vm.wait(timeout=30)

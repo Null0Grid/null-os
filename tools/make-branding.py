@@ -126,10 +126,10 @@ def wallpaper_svg(w=1920, h=1080, text=True):
              mark_group(mx, my, size, CYAN, glow=CYAN)]
     if text:
         ty = my + size * 1.2 + 70
-        parts.append(f'<text x="{w / 2}" y="{ty:.0f}" text-anchor="middle" font-family="JetBrains Mono, monospace" '
-                     f'font-size="44" letter-spacing="18" fill="{TEXT}">NULL OS</text>')
-        parts.append(f'<text x="{w / 2}" y="{ty + 44:.0f}" text-anchor="middle" font-family="JetBrains Mono, monospace" '
-                     f'font-size="18" letter-spacing="6" fill="{DIM}">debian based  //  neon lab</text>')
+        parts.append(f'<text x="{w / 2}" y="{ty:.0f}" text-anchor="middle" font-family="Silkscreen, JetBrains Mono, monospace" '
+                     f'font-size="46" letter-spacing="14" fill="{TEXT}">NULL OS</text>')
+        parts.append(f'<text x="{w / 2}" y="{ty + 44:.0f}" text-anchor="middle" font-family="VT323, JetBrains Mono, monospace" '
+                     f'font-size="28" letter-spacing="4" fill="{DIM}">debian based  //  neon lab</text>')
     parts.append("</svg>")
     return "".join(parts)
 
@@ -145,6 +145,49 @@ def grub_svg(w=1920, h=1080):
             '</svg>')
 
 
+def boot_splash_svg(w=640, h=480):
+    """ISO boot menu background (isolinux, 640x480). Menu sits in the middle,
+    so the mark and name go top-left like Debian's layout."""
+    size = 92
+    return (f'<svg xmlns="http://www.w3.org/2000/svg" width="{w}" height="{h}" viewBox="0 0 {w} {h}">'
+            + defs() +
+            f'<rect width="{w}" height="{h}" fill="{BG}"/>'
+            + rain(w, h, 70, seed=11) +
+            mark_group(46, 18, size, CYAN, glow=CYAN) +
+            f'<text x="170" y="74" font-family="Silkscreen, monospace" font-size="34" letter-spacing="6" fill="{TEXT}">NULL OS</text>'
+            f'<text x="172" y="104" font-family="VT323, monospace" font-size="22" letter-spacing="2" fill="{DIM}">debian based // neon lab</text>'
+            f'<line x1="0" y1="{h - 60}" x2="{w}" y2="{h - 60}" stroke="{PINK}" stroke-opacity="0.5" stroke-width="1.5"/>'
+            '</svg>')
+
+
+def embed_png_svg(png_path, w, h):
+    """An SVG that only wraps a PNG, so renderers need no fonts."""
+    import base64
+    data = base64.b64encode(open(png_path, "rb").read()).decode()
+    return (f'<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" '
+            f'width="{w}" height="{h}" viewBox="0 0 {w} {h}">'
+            f'<image width="{w}" height="{h}" xlink:href="data:image/png;base64,{data}"/></svg>')
+
+
+def desktop_base_theme(wallpaper_png, login_png):
+    """Debian desktop-base theme: Plasma's default wallpaper, lock screen and
+    the SDDM login background all follow /usr/share/desktop-base/active-theme."""
+    import json
+    import shutil
+    base = ("config", "includes.chroot", "usr", "share", "desktop-base", "nullos-theme")
+    meta = {"KPlugin": {"Id": "NullOS", "Name": "Null OS", "License": "GPL-3.0+",
+                        "Authors": [{"Name": "Null Grid"}]}}
+    for part in ("wallpaper", "lockscreen"):
+        shutil.copy(wallpaper_png, out(*base, part, "contents", "images", "1920x1080.png"))
+        with open(out(*base, part, "metadata.json"), "w") as f:
+            json.dump(meta, f, indent=2)
+    svg = embed_png_svg(login_png, 1920, 1080)
+    for name in ("background.svg", "background-nologo.svg"):
+        with open(out(*base, "login", name), "w") as f:
+            f.write(svg)
+    shutil.copy(login_png, out(*base, "login", "background.png"))
+
+
 def main():
     logo = logo_svg()
     open(out("branding", "null-mark.svg"), "w").write(logo)
@@ -155,6 +198,15 @@ def main():
     open(out(*bgdir, "wallpaper.svg"), "w").write(wp)
     cairosvg.svg2png(bytestring=wp.encode(), write_to=out(*bgdir, "wallpaper.png"))
     cairosvg.svg2png(bytestring=grub_svg().encode(), write_to=out(*bgdir, "grub.png"))
+    # Login background: wallpaper without the big centred mark text clash
+    login_png = out("branding", "login-background.png")
+    cairosvg.svg2png(bytestring=wallpaper_svg(text=False).encode(), write_to=login_png)
+    desktop_base_theme(out(*bgdir, "wallpaper.png"), login_png)
+    # ISO boot menu
+    splash_png = out("branding", "boot-splash.png")
+    cairosvg.svg2png(bytestring=boot_splash_svg().encode(), write_to=splash_png)
+    with open(out("branding", "boot-splash.svg"), "w") as f:
+        f.write(embed_png_svg(splash_png, 640, 480))
     print("branding written")
 
 

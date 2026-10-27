@@ -1,0 +1,17 @@
+[General]
+ColorScheme=NullLab
+font=Inter,10,-1,5,400,0,0,0,0,0,0,0,0,0,0,1
+menuFont=Inter,10,-1,5,400,0,0,0,0,0,0,0,0,0,0,1
+toolBarFont=Inter,10,-1,5,400,0,0,0,0,0,0,0,0,0,0,1
+smallestReadableFont=Inter,8,-1,5,400,0,0,0,0,0,0,0,0,0,0,1
+fixed=Null Mono,10,-1,5,400,0,0,0,0,0,0,0,0,0,0,1
+
+[Icons]
+Theme=NullLine
+
+[KDE]
+LookAndFeelPackage=org.kde.breezedark.desktop
+widgetStyle=Breeze
+
+[WM]
+activeFont=Silkscreen,9,-1,5,400,0,0,0,0,0,0,0,0,0,0,1

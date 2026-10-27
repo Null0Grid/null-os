@@ -11,7 +11,11 @@ echo ">> Installing build tools"
 apt-get update -qq
 DEBIAN_FRONTEND=noninteractive apt-get install -y -qq \
   live-build debootstrap squashfs-tools xorriso isolinux syslinux-common \
-  grub-efi-amd64-bin grub-pc-bin mtools dosfstools ca-certificates >/dev/null
+  grub-efi-amd64-bin grub-pc-bin mtools dosfstools ca-certificates \
+  curl git jq python3 >/dev/null
+
+echo ">> Fetching fonts, icons, VSCodium key and the Null Grid browser"
+./tools/fetch-assets.sh
 
 echo ">> Writing release info from null-os.conf"
 cat > config/includes.chroot/etc/null-os-release <<REL
@@ -31,6 +35,20 @@ lb clean --purge >/dev/null 2>&1 || true
 
 echo ">> Configuring ($DEBIAN_SUITE/$ARCH, desktop=$DESKTOP)"
 lb config
+
+echo ">> Null OS boot menu (replaces the Debian splash)"
+for d in isolinux syslinux_common grub-pc grub-efi; do
+  src=/usr/share/live/build/bootloaders/$d
+  [ -d "$src" ] || continue
+  rm -rf "config/bootloaders/$d"; mkdir -p config/bootloaders
+  cp -rL "$src" "config/bootloaders/$d"
+  find "config/bootloaders/$d" -name 'splash.svg.in' -exec cp branding/boot-splash.svg {} \;
+  find "config/bootloaders/$d" -name 'splash.svg'    -exec cp branding/boot-splash.svg {} \;
+  find "config/bootloaders/$d" -name 'splash.png'    -exec cp branding/boot-splash.png {} \;
+  # Menu highlight in Null cyan
+  find "config/bootloaders/$d" -name 'stdmenu.cfg' -exec sed -i \
+    -e 's/#76a1d0ff/#ff00e5ff/g' -e 's/^\(menu color sel \* \)#ffffffff/\1#ff0a0a0f/' {} \;
+done
 
 echo ">> Building (30-60 min depending on mirror speed)"
 lb build

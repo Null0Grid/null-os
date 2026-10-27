@@ -13,3 +13,9 @@ config/source
 config/includes.chroot/etc/null-os-release
 config/package-lists/desktop.list.chroot
 __pycache__/
+# Fetched at build time by tools/fetch-assets.sh
+config/includes.chroot/usr/share/fonts/truetype/null-os-ui/
+config/includes.chroot/usr/share/icons/NullLine/
+config/archives/vscodium.*
+config/packages.chroot/
+config/bootloaders/
