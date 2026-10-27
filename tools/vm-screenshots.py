@@ -14,6 +14,8 @@ Shots taken:
   05b-fastfetch       fastfetch with the Null OS logo
   05c-shortcut-offer  "Add to desktop?" notification after an app install
   05c2-show-in-folder Null File answering "Show in folder" (FileManager1 D-Bus)
+  06b-lock-screen     lock screen (Super+L)
+  06c-unlocked        unlocked again with the live password
   06-root             root prompt (red frame)
   07-console-prompt   text console: prompt with the @ fallback
   08-shutdown-NN      Plymouth shutdown, every 0.4 s
@@ -175,6 +177,16 @@ def main():
         shot("06-root")
         type_text("exit\n")
         time.sleep(1)
+
+        # Live password: lock the screen, unlock with "live"
+        key("meta_l-l")
+        time.sleep(5)
+        shot("06b-lock-screen")
+        key("spc")
+        time.sleep(2)
+        type_text("live\n")
+        time.sleep(5)
+        shot("06c-unlocked")
 
         # Text console: the prompt with the @ fallback
         key("ctrl-alt-f3")
