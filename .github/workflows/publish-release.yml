@@ -77,29 +77,22 @@ jobs:
             echo
             echo "Built from $SHA (run ${{ inputs.run_id }})."
           } > notes.md
-          # Re-publishing a tag replaces the old release and its files
-          if gh release view "$TAG" -R "${{ github.repository }}" >/dev/null 2>&1; then
-            gh release delete "$TAG" -R "${{ github.repository }}" -y
-            sleep 5
-          fi
-          PRE=""
-          # Use the tag if it already exists (pushed by hand): the workflow
-          # token can't create a tag on a commit that changes workflows.
-          if gh api "repos/${{ github.repository }}/git/ref/tags/$TAG" >/dev/null 2>&1; then
-            TARGET=""
+          R="${{ github.repository }}"
+          # The workflow token can't create tags here (GitHub blocks it for
+          # commits that touch workflows), so the release is made by hand in
+          # the GitHub UI. If it exists, swap its files and notes.
+          if gh release view "$TAG" -R "$R" >/dev/null 2>&1; then
+            for a in $(gh release view "$TAG" -R "$R" --json assets --jq '.assets[].name'); do
+              gh release delete-asset "$TAG" "$a" -R "$R" -y
+            done
+            gh release edit "$TAG" -R "$R" --title "Null OS ${TAG#v}" --notes-file notes.md
+            gh release upload "$TAG" iso/* -R "$R" --clobber
           else
-            TARGET="--target $SHA"
-          fi
-          [ "${{ inputs.prerelease }}" = true ] && PRE="--prerelease"
-          for try in 1 2 3; do
-            if gh release create "$TAG" iso/* -R "${{ github.repository }}" \
-                 $TARGET --title "Null OS ${TAG#v}" --notes-file notes.md $PRE 2> err.txt; then
-              exit 0
+            PRE=""
+            [ "${{ inputs.prerelease }}" = true ] && PRE="--prerelease"
+            if ! gh release create "$TAG" iso/* -R "$R" --target "$SHA" \
+                   --title "Null OS ${TAG#v}" --notes-file notes.md $PRE 2> err.txt; then
+              echo "::error::release create failed: $(tr '\n' ' ' < err.txt). Create release $TAG in the GitHub UI, then run this again."
+              exit 1
             fi
-            echo "::warning::release create try $try: $(tr '\n' ' ' < err.txt)"
-            # A half-made release from a failed try is removed before retrying
-            gh release delete "$TAG" -R "${{ github.repository }}" -y 2>/dev/null || true
-            sleep 20
-          done
-          echo "::error::release create failed: $(tr '\n' ' ' < err.txt)"
-          exit 1
+          fi
