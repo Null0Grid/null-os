@@ -146,6 +146,20 @@ MIME
                s/^( *(versionedName|shortVersionedName): *).*/\1$NULL_NAME $NULL_VERSION/" \
       /etc/calamares/branding/debian/branding.desc
   fi
+  # Installer users page: offer an "accept weak password" checkbox (unchecked)
+  UC=/etc/calamares/modules/users.conf
+  if [ ! -f $UC ] && [ -f /usr/share/calamares/modules/users.conf ]; then
+    mkdir -p /etc/calamares/modules
+    cp /usr/share/calamares/modules/users.conf $UC
+  fi
+  if [ -f $UC ]; then
+    sed -i -E '/^allowWeakPasswords(Default)?:/d' $UC
+    printf '\nallowWeakPasswords: true\nallowWeakPasswordsDefault: false\n' >> $UC
+  else
+    echo "WARNING: $UC not found; installer password settings unchanged" >&2
+  fi
+  # The password check needs cracklib's dictionary
+  [ -e /var/cache/cracklib/cracklib_dict.pwd ] || update-cracklib || true
   # Every "Install Debian" launcher (menu, desktop, autostart), whatever its file name
   for d in $(grep -rlE '^Name=Install Debian' /usr/share/applications /etc/skel /etc/xdg 2>/dev/null); do
     sed -i -E "s/^Name=.*/Name=Install $NULL_NAME/; /^Name\[/d; s/^Comment=.*/Comment=Install $NULL_NAME to this computer/; /^Comment\[/d" "$d"

@@ -35,6 +35,8 @@ vlc
 codium
 calamares
 calamares-settings-debian
+# Dictionary for the installer's password check (a recommend, so not pulled in)
+cracklib-runtime
 plymouth
 fonts-inter
 fonts-noto-core

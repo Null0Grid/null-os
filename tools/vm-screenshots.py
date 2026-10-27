@@ -14,6 +14,7 @@ Shots taken:
   05b-fastfetch       fastfetch with the Null OS logo
   05c-shortcut-offer  "Add to desktop?" notification after an app install
   05c2-show-in-folder Null File answering "Show in folder" (FileManager1 D-Bus)
+  05e-installer-password  cracklib dictionary present, weak-password option on
   06b-lock-screen     lock screen (Super+L)
   06c-unlocked        unlocked again with the live password
   06-root             root prompt (red frame)
@@ -172,6 +173,11 @@ def main():
         time.sleep(9)
         shot("05c2-show-in-folder")
         time.sleep(6)
+        # Installer password check: cracklib dictionary + weak-password option
+        type_text("clear; ls /var/cache/cracklib/; grep -i weak /etc/calamares/modules/users.conf; "
+                  "echo Tr0ub4dor-Lab-77 | /usr/sbin/cracklib-check\n")
+        time.sleep(3)
+        shot("05e-installer-password")
         type_text("sudo -i\n")
         time.sleep(3)
         shot("06-root")
