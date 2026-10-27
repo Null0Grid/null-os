@@ -52,7 +52,7 @@ A ring crossed by two parallel slashes (echoes the Null Grid `//` family mark).
 | Web browser | **Null Grid** (NODE_GRID), latest `.deb` from Null0Grid/node-grid releases; Null Search default |
 | App store | **Discover** with Flathub enabled |
 | File manager | **Null File** (Null Grid app, Tauri), latest `.deb` from Null0Grid/null-file releases; default for folders; updates through its signed apt repo |
-| Gamer Mode | **NULL // PLAY** (Null Grid app, Electron), latest `.deb` from Null0Grid/null-play releases. Open it from the desktop right-click menu ("Gamer Mode"), the first start-menu favorite, the desktop shortcut, Super+G, or `gamemode` in a terminal. Ships with Feral GameMode, ddcutil (external-monitor brightness, i2c-dev loaded) and BlueZ |
+| Gamer Mode | **NULL // PLAY** is not on the ISO: installed separately after Null OS (its .deb from Null0Grid/null-play releases). Its package brings its own entry points: `gamemode` command, desktop right-click entry, Super+G; Null OS offers the desktop shortcut on install |
 | Code editor | **VSCodium** (VS Code without Microsoft branding or telemetry; bundling Microsoft's build isn't allowed by its license) |
 | Office | **LibreOffice** (Writer, Calc, Impress) |
 | Media | **VLC** |

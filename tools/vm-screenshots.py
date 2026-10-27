@@ -8,15 +8,12 @@ Shots taken:
   01-boot-menu        ISO boot menu
   02-boot-NN          every 3 s during boot (Plymouth startup animation)
   03-desktop          Plasma live desktop
-  03b-desktop-menu    desktop right-click menu (Gamer Mode entry)
-  04-start-menu       start menu open (NULL // PLAY favorite)
+  04-start-menu       start menu open
   04b-null-file       Null File, the default file manager
   05-terminal         Konsole: two-line prompt, null-info, a failed command
   05b-fastfetch       fastfetch with the Null OS logo
   05c-shortcut-offer  "Add to desktop?" notification after an app install
   05c2-show-in-folder Null File answering "Show in folder" (FileManager1 D-Bus)
-  05d-gamemode        NULL // PLAY opened with the `gamemode` command
-  05e-super-g         NULL // PLAY opened with Super+G
   06-root             root prompt (red frame)
   07-console-prompt   text console: prompt with the @ fallback
   08-shutdown-NN      Plymouth shutdown, every 0.4 s
@@ -133,15 +130,6 @@ def main():
         wait(120, "live boot into Plasma")
         shot("03-desktop")
 
-        # Right-click the empty desktop (the pointer starts mid-screen)
-        monitor("mouse_button 2")
-        time.sleep(0.2)
-        monitor("mouse_button 0")
-        time.sleep(3)
-        shot("03b-desktop-menu")
-        key("esc")
-        time.sleep(2)
-
         key("meta_l")
         time.sleep(4)
         shot("04-start-menu")
@@ -181,18 +169,6 @@ def main():
                   "array:string:file:///etc/hostname string:; sleep 12; pkill -f null-file\n")
         time.sleep(9)
         shot("05c2-show-in-folder")
-        time.sleep(6)
-        # NULL // PLAY: the `gamemode` command, then Super+G. Konsole closes
-        # it again after a while, so the next steps type into Konsole.
-        type_text("clear; gamemode & sleep 16; pkill -f null-play\n")
-        time.sleep(13)
-        shot("05d-gamemode")
-        time.sleep(6)
-        type_text("clear; sleep 16; pkill -f null-play\n")
-        time.sleep(1)
-        key("meta_l-g")
-        time.sleep(12)
-        shot("05e-super-g")
         time.sleep(6)
         type_text("sudo -i\n")
         time.sleep(3)

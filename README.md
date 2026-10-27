@@ -14,7 +14,7 @@ Every design decision is in **[DESIGN.md](DESIGN.md)**. Screenshots from the lat
 
 - **Desktop:** KDE Plasma 6, Windows-style taskbar, Null Lab color scheme, **NullLine** white line icons (BeautyLine recolored), Silkscreen titles and Inter text.
 - **Startup and shutdown:** a glitchy Plymouth startup and a CRT power-off shutdown. Previews are in `branding/preview/`.
-- **Apps:** Null Grid browser, Null File (file manager), NULL // PLAY (Gamer Mode: Super+G or `gamemode`), Discover with Flathub, Konsole, VSCodium, LibreOffice, VLC, Gwenview, Okular.
+- **Apps:** Null Grid browser, Null File (file manager), Discover with Flathub, Konsole, VSCodium, LibreOffice, VLC, Gwenview, Okular.
 - **Terminal:** zsh with autosuggestions and syntax highlighting, the two-line prompt, and Null Mono in Konsole.
 - **Network toolkit:** nmap, tcpdump, Wireshark, iperf3, mtr, dnsutils, lldpd, ethtool, nftables, wireguard-tools, arp-scan, ipcalc, snmp, minicom, picocom and Remmina.
 - **System:** Calamares graphical installer, firewall on (incoming blocked except SSH), Docker plus Compose, unattended security upgrades, live persistence for USB.
@@ -76,3 +76,7 @@ The mark is defined once, as geometry, in `null-mark.py`. At image build time `p
 - [ ] Custom GTK/xfwm4 theme (currently Adwaita-dark with accent overrides)
 - [ ] Null apps (Null Search, Null Notes) as optional packages
 - [ ] Own signed apt repo for Null OS packages
+
+## Gamer Mode (optional)
+
+NULL // PLAY isn't preinstalled. After installing Null OS, download `null-play_<version>_amd64.deb` from the [null-play releases](https://github.com/Null0Grid/null-play/releases) and run `sudo apt install ./null-play_*_amd64.deb`. Null OS asks whether to put it on the desktop.

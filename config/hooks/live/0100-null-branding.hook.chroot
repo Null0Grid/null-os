@@ -136,49 +136,6 @@ MIME
     echo "WARNING: Null File not installed; no default file manager set" >&2
   fi
 
-  # NULL // PLAY (Gamer Mode): desktop shortcut, Super+G, start-menu
-  # favorite (layout script below). The right-click entry is a KIO service
-  # menu in includes.chroot; the `gamemode` command ships in its .deb.
-  NP=$(grep -lE '^Exec=.*null-play' /usr/share/applications/*.desktop 2>/dev/null | head -1 || true)
-  if [ -n "$NP" ]; then
-    mkdir -p /etc/skel/Desktop /usr/share/kglobalaccel
-    install -m 755 "$NP" /etc/skel/Desktop/null-play.desktop
-    sed '/^\[Desktop Entry\]/a X-KDE-Shortcuts=Meta+G' "$NP" > "/usr/share/kglobalaccel/$(basename "$NP")"
-    NP_ID=$(basename "$NP")
-  else
-    echo "WARNING: NULL // PLAY not installed; no Gamer Mode" >&2
-    rm -f /usr/share/kio/servicemenus/null-play-gamemode.desktop
-    NP_ID=""
-  fi
-
-  # Start menu favorites (Gamer Mode first). Plasma ports this list into
-  # its favorites on first login.
-  for f in $LNF/org.nullos.desktop/contents/layouts/org.kde.plasma.desktop-layout.js \
-           /usr/share/plasma/shells/org.kde.plasma.desktop/contents/layout.js; do
-    [ -f "$f" ] || continue
-    cat >> "$f" <<JS
-
-// ---- Null OS: start menu favorites ----
-(function () {
-  var favs = ["$NP_ID", "preferred://browser", "preferred://filemanager",
-              "org.kde.konsole.desktop", "codium.desktop",
-              "org.kde.discover.desktop", "systemsettings.desktop"]
-    .filter(function (x) { return x; })
-    .map(function (x) { return x.indexOf("://") > 0 ? x : "applications:" + x; });
-  panels().forEach(function (p) {
-    p.widgets().forEach(function (w) {
-      if (w.type === "org.kde.plasma.kickoff" || w.type === "org.kde.plasma.kicker") {
-        w.currentConfigGroup = ["General"];
-        w.writeConfig("favorites", favs);
-        w.writeConfig("favoritesPortedToKAstats", false);
-      }
-    });
-  });
-})();
-JS
-    echo "start menu favorites added to $f"
-  done
-
   # Flathub in Discover
   flatpak remote-add --system --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo || true
 
