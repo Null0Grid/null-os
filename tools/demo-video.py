@@ -70,8 +70,9 @@ def type_text(text):
 
 
 class Capture(threading.Thread):
-    """Grab the guest framebuffer as PNGs through a dedicated QEMU monitor.
-    Full guest resolution, ~8 fps, no window or display server involved."""
+    """Grab the guest framebuffer through a dedicated QEMU monitor, at full
+    guest resolution, no window or display server involved. Uses PNG
+    screendumps when QEMU supports them, otherwise PPM converted to JPEG."""
 
     def __init__(self, outdir, t0):
         super().__init__(daemon=True)
@@ -79,11 +80,20 @@ class Capture(threading.Thread):
         self.frames = []          # (path, t)
         self.running = True
         self.paused = False
+        self.fmt = "png"
+        self.errors = []
         os.makedirs(outdir, exist_ok=True)
 
     def run(self):
+        try:
+            self._run()
+        except Exception as e:  # never kill the tour; report instead
+            self.errors.append(f"capture crashed: {e!r}")
+
+    def _run(self):
+        from PIL import Image
         s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        s.settimeout(10)
+        s.settimeout(15)
         for _ in range(50):
             try:
                 s.connect(CAP)
@@ -95,8 +105,12 @@ class Capture(threading.Thread):
         def until_prompt():
             nonlocal buf
             while b"(qemu)" not in buf:
-                buf += s.recv(65536)
-            buf = buf.split(b"(qemu)", 1)[1]
+                chunk = s.recv(65536)
+                if not chunk:
+                    raise OSError("monitor closed")
+                buf += chunk
+            reply, buf = buf.split(b"(qemu)", 1)
+            return reply.decode(errors="replace")
 
         until_prompt()
         n = 0
@@ -104,19 +118,41 @@ class Capture(threading.Thread):
             if self.paused:
                 time.sleep(0.2)
                 continue
-            path = os.path.join(self.outdir, f"{n:06d}.png")
             t = time.time() - self.t0
+            if self.fmt == "png":
+                path = os.path.join(self.outdir, f"{n:06d}.png")
+                cmd = f"screendump -f png {path}"
+            else:
+                path = os.path.join(self.outdir, f"{n:06d}.ppm")
+                cmd = f"screendump {path}"
             try:
-                s.sendall(f"screendump -f png {path}\n".encode())
-                until_prompt()
-            except (socket.timeout, OSError):
-                log("capture: monitor stalled")
+                s.sendall((cmd + "\n").encode())
+                reply = until_prompt()
+            except (socket.timeout, OSError) as e:
+                self.errors.append(f"monitor: {e!r}")
                 time.sleep(0.5)
                 continue
-            if os.path.exists(path):
-                self.frames.append((path, round(t, 3)))
-                n += 1
-            time.sleep(0.04)
+            # The reply echoes the command; anything else is an error message
+            extra = reply.replace(cmd, "").strip()
+            if extra and len(self.errors) < 5:
+                self.errors.append(f"{cmd.split()[0]} {self.fmt}: {extra[:200]}")
+            if not os.path.exists(path):
+                if self.fmt == "png":
+                    self.fmt = "ppm"   # QEMU without PNG screendump support
+                time.sleep(0.1)
+                continue
+            if self.fmt == "ppm":
+                jpg = path[:-4] + ".jpg"
+                try:
+                    Image.open(path).convert("RGB").save(jpg, quality=92)
+                    os.remove(path)
+                    path = jpg
+                except Exception as e:
+                    self.errors.append(f"ppm convert: {e!r}")
+                    continue
+            self.frames.append((path, round(t, 3)))
+            n += 1
+            time.sleep(0.03)
         s.close()
 
 
@@ -267,7 +303,13 @@ def record(iso, work):
     # Frames -> constant-rate raw video on the same clock as the scenes.
     # Each frame lasts until the next one; paused stretches simply hold.
     frames = cap.frames
-    log(f"captured {len(frames)} frames")
+    log(f"captured {len(frames)} frames ({cap.fmt})")
+    # Visible in the run's annotations even when logs can't be downloaded
+    print(f"::notice title=capture::{len(frames)} frames, format {cap.fmt}", flush=True)
+    for e in cap.errors[:5]:
+        print(f"::warning title=capture-error::{e}", flush=True)
+    if not frames:
+        sys.exit("no frames captured")
     lst = os.path.join(work, "frames.txt")
     with open(lst, "w") as f:
         f.write("ffconcat version 1.0\n")
@@ -401,7 +443,11 @@ def edit(work, out):
 
 if __name__ == "__main__":
     if len(sys.argv) == 4 and sys.argv[1] == "record":
-        record(sys.argv[2], sys.argv[3])
+        try:
+            record(sys.argv[2], sys.argv[3])
+        except BaseException as e:
+            print(f"::error title=record-failed::{e!r}"[:900], flush=True)
+            raise
     elif len(sys.argv) == 4 and sys.argv[1] == "edit":
         edit(sys.argv[2], sys.argv[3])
     else:
