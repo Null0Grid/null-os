@@ -12,3 +12,16 @@ User=$USER_NAME
 Session=$SESSION
 Relogin=false
 CONF
+
+# No automatic screen lock in the live session (nobody knows a password
+# there). Super+L still locks; installed systems keep Plasma's default.
+HOME_DIR=$(getent passwd "$USER_NAME" | cut -d: -f6)
+if [ -n "$HOME_DIR" ] && [ -d "$HOME_DIR" ]; then
+  mkdir -p "$HOME_DIR/.config"
+  cat > "$HOME_DIR/.config/kscreenlockerrc" <<CONF
+[Daemon]
+Autolock=false
+LockOnResume=false
+CONF
+  chown -R "$USER_NAME:" "$HOME_DIR/.config"
+fi

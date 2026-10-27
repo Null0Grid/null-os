@@ -44,7 +44,9 @@ KEYS = {" ": "spc", "-": "minus", "/": "slash", ".": "dot", "\n": "ret",
         "=": "equal", ":": "shift-semicolon", ">": "shift-dot",
         ";": "semicolon", "*": "shift-8", "'": "apostrophe", ",": "comma",
         "^": "shift-6", "$": "shift-4", "!": "shift-1", "#": "shift-3",
-        "&": "shift-7", "\\": "backslash"}
+        "&": "shift-7", "\\": "backslash", "\"": "shift-apostrophe",
+        "(": "shift-9", ")": "shift-0", "[": "bracket_left", "]": "bracket_right",
+        "?": "shift-slash", "<": "shift-comma", "{": "shift-bracket_left", "}": "shift-bracket_right"}
 
 
 def log(msg):
@@ -175,7 +177,9 @@ def main():
         time.sleep(6)
         # Installer password check: cracklib dictionary + weak-password option
         type_text("clear; ls /var/cache/cracklib/; grep -i weak /etc/calamares/modules/users.conf; "
-                  "echo Tr0ub4dor-Lab-77 | /usr/sbin/cracklib-check\n")
+                  "echo Tr0ub4dor-Lab-77 | /usr/sbin/cracklib-check; grep -A2 Daemon ~/.config/kscreenlockerrc; "
+                  "perl -e 'print crypt(\"live\", $ARGV[0]) eq $ARGV[0] ? \"PASSWORD-IS-live\\n\" : \"PASSWORD-NOT-live\\n\"' "
+                  "\"$(sudo getent shadow user | cut -d: -f2)\"\n")
         time.sleep(3)
         shot("05e-installer-password")
         type_text("sudo -i\n")
@@ -188,9 +192,11 @@ def main():
         key("meta_l-l")
         time.sleep(5)
         shot("06b-lock-screen")
-        key("spc")
-        time.sleep(2)
-        type_text("live\n")
+        key("esc")
+        time.sleep(3)
+        type_text("live")
+        time.sleep(1)
+        key("ret")
         time.sleep(5)
         shot("06c-unlocked")
 
