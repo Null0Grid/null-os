@@ -51,7 +51,7 @@ A ring crossed by two parallel slashes (echoes the Null Grid `//` family mark).
 |---|---|
 | Web browser | **Null Grid** (NODE_GRID), latest `.deb` from Null0Grid/node-grid releases; Null Search default |
 | App store | **Discover** with Flathub enabled |
-| File manager | **Dolphin** for now (undecided, revisit) |
+| File manager | **Null Files** (new Null Grid app, to be built); Dolphin ships until it exists |
 | Code editor | **VSCodium** (VS Code without Microsoft branding or telemetry; bundling Microsoft's build isn't allowed by its license) |
 | Office | **LibreOffice** (Writer, Calc, Impress) |
 | Media | **VLC** |
@@ -89,7 +89,7 @@ Known issues:
 
 ## Open
 
-- File manager (Dolphin for now)
+- Build Null Files, the Null Grid file manager, and swap it in for Dolphin
 - Optional startup/shutdown sounds
 - Null Notes, Drive and Scribe as preinstalled apps
 - Fully custom SDDM theme and Calamares slideshow
