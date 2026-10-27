@@ -12,6 +12,7 @@ on:
 jobs:
   screenshots:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     permissions:
       contents: write
       actions: read
@@ -30,8 +31,11 @@ jobs:
       - name: Install QEMU
         run: sudo apt-get update -qq && sudo apt-get install -y -qq qemu-system-x86 python3-pil
       - name: Boot ISO and take screenshots
+        timeout-minutes: 20
+        continue-on-error: true
         run: python3 tools/vm-screenshots.py *.iso shots
       - name: Publish screenshots to the screenshots branch
+        if: always()
         run: |
           cd shots
           git init -q -b screenshots

@@ -45,11 +45,18 @@ def log(msg):
 
 def monitor(cmd):
     with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as s:
+        s.settimeout(10)  # never hang the job on a stuck monitor
         s.connect(MON)
-        s.recv(4096)
+        try:
+            s.recv(4096)
+        except socket.timeout:
+            pass
         s.sendall((cmd + "\n").encode())
         time.sleep(0.15)
-        s.recv(4096)
+        try:
+            s.recv(4096)
+        except socket.timeout:
+            log(f"monitor timeout on: {cmd}")
 
 
 def key(name):
@@ -192,7 +199,10 @@ def main():
         time.sleep(5)
     finally:
         vm.terminate()
-        vm.wait(timeout=30)
+        try:
+            vm.wait(timeout=30)
+        except subprocess.TimeoutExpired:
+            vm.kill()
 
 
 if __name__ == "__main__":
