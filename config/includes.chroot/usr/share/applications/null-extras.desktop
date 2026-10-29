@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Null OS Extras
+GenericName=Add apps
+Comment=Add the Full package: VS Code, Claude, Docker, VirtualBox, LibreOffice, NULL // PLAY, homelab and programming tools
+Exec=/usr/local/bin/null-extras gui
+Icon=null-os
+Terminal=false
+Categories=System;Settings;PackageManager;
+Keywords=full;extras;apps;install;vscode;claude;docker;virtualbox;libreoffice;terraform;ansible;

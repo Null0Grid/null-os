@@ -48,5 +48,7 @@ xdg-user-dirs
 xdg-utils
 wireshark
 remmina
+remmina-plugin-rdp
+remmina-plugin-vnc
 kdialog
 libnotify-bin

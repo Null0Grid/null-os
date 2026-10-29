@@ -160,6 +160,21 @@ MIME
   fi
   # The password check needs cracklib's dictionary
   [ -e /var/cache/cracklib/cracklib_dict.pwd ] || update-cracklib || true
+  # Installer "Apps" page: Minimal or Full (null-extras groups). The package
+  # step moves after sources-final so Full downloads from the internet; Debian
+  # runs it while apt still points at the USB stick.
+  SC=/etc/calamares/settings.conf
+  if [ -f $SC ] && [ -x /usr/local/bin/null-extras ]; then
+    /usr/local/bin/null-extras netinstall-conf > /etc/calamares/modules/netinstall.conf
+    grep -q -- '- netinstall' $SC || sed -i 's/^\( *\)- summary$/\1- netinstall\n\1- summary/' $SC
+    if grep -q '^ *- sources-final$' $SC; then
+      sed -i '/^ *- packages$/d' $SC
+      sed -i 's/^\( *\)- sources-final$/\1- sources-final\n\1- packages/' $SC
+    fi
+    echo "Calamares sequence:"; sed -n '/^sequence:/,/^branding/p' $SC
+  else
+    echo "WARNING: Calamares settings or null-extras missing; no Apps page" >&2
+  fi
   # Every "Install Debian" launcher (menu, desktop, autostart), whatever its file name
   for d in $(grep -rlE '^Name=Install Debian' /usr/share/applications /etc/skel /etc/xdg 2>/dev/null); do
     sed -i -E "s/^Name=.*/Name=Install $NULL_NAME/; /^Name\[/d; s/^Comment=.*/Comment=Install $NULL_NAME to this computer/; /^Comment\[/d" "$d"

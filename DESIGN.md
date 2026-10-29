@@ -52,13 +52,15 @@ A ring crossed by two parallel slashes (echoes the Null Grid `//` family mark).
 | Web browser | **Null Grid** (NODE_GRID), latest `.deb` from Null0Grid/node-grid releases; Null Search default |
 | App store | **Discover** with Flathub enabled |
 | File manager | **Null File** (Null Grid app, Tauri), latest `.deb` from Null0Grid/null-file releases; default for folders; updates through its signed apt repo |
-| Gamer Mode | **NULL // PLAY** is not on the ISO: installed separately after Null OS (its .deb from Null0Grid/null-play releases). Its package brings its own entry points: `gamemode` command, desktop right-click entry, Super+G; Null OS offers the desktop shortcut on install |
+| Gamer Mode | **NULL // PLAY**, not on the ISO; part of **Full** (latest .deb from Null0Grid/null-play releases). Its package brings its own entry points |
 | Code editor | **VSCodium** (VS Code without Microsoft branding or telemetry; bundling Microsoft's build isn't allowed by its license) |
-| Office | Not preinstalled (keeps the ISO under 2 GB); LibreOffice is one click in Discover |
+| Office | Not preinstalled (keeps the ISO under 2 GB); part of **Full** |
 | Media | **VLC** |
 | Images / PDF | Gwenview, Okular |
 | Network toolkit | nmap, tcpdump, Wireshark, iperf3, mtr, dnsutils, lldpd, ethtool, nftables, wireguard-tools, arp-scan, ipcalc, snmp, minicom, picocom, Remmina |
-| Containers | Not preinstalled; `sudo apt install docker.io docker-compose` |
+| Containers | Not preinstalled; part of **Full** (Docker, Compose, Podman) |
+| Minimal / Full | Like Ubuntu: the installer's **Apps** page (Calamares netinstall) offers **Null OS Full**, a tree you can untick parts of; it downloads during install, so the ISO stays small. The **Null OS Extras** app (`null-extras`) adds the same groups later, also in the live session. Groups: Office (LibreOffice), Docker + Podman, QEMU/KVM + virt-manager, VirtualBox 7.2 (Oracle repo), VS Code (Microsoft repo), Claude Desktop (Anthropic repo), NULL // PLAY, Homelab (Ansible, kubectl, Terraform), Programming (build tools, Python, Node.js, Go, Rust, Java, gh). One script defines the groups for both |
+| Remote desktop | Remmina with its RDP and VNC plugins (base) |
 | Null apps | Browser only for now (Notes, Drive, Scribe later) |
 | Desktop shortcuts | `null-shortcuts` asks "Add to desktop?" when a new app is installed (apt, Flatpak, Steam games); **Null OS Settings** picks Original or NullLine icons and turns the prompt on or off |
 

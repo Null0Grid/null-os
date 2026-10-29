@@ -77,6 +77,10 @@ The mark is defined once, as geometry, in `null-mark.py`. At image build time `p
 - [ ] Null apps (Null Search, Null Notes) as optional packages
 - [ ] Own signed apt repo for Null OS packages
 
+## Minimal or Full
+
+Null OS installs Minimal by default. Tick **Null OS Full** on the installer's **Apps** page (or parts of it) to download LibreOffice, Docker + Podman, QEMU/KVM, VirtualBox, VS Code, Claude Desktop, NULL // PLAY, homelab tools (Ansible, kubectl, Terraform) and programming tools during install. Add any of them later with **Null OS Extras** in the start menu, or `null-extras install <group>` (`null-extras list` shows the groups).
+
 ## Gamer Mode (optional)
 
 NULL // PLAY isn't preinstalled. After installing Null OS, download `null-play_<version>_amd64.deb` from the [null-play releases](https://github.com/Null0Grid/null-play/releases) and run `sudo apt install ./null-play_*_amd64.deb`. Null OS asks whether to put it on the desktop.

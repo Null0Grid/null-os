@@ -15,6 +15,8 @@ Shots taken:
   05c-shortcut-offer  "Add to desktop?" notification after an app install
   05c2-show-in-folder Null File answering "Show in folder" (FileManager1 D-Bus)
   05e-installer-password  cracklib dictionary present, weak-password option on
+  05f-extras-app      Null OS Extras checklist
+  05g-extras-homelab  homelab group installed from the internet
   06b-lock-screen     lock screen (Super+L)
   06c-unlocked        unlocked again with the live password
   06-root             root prompt (red frame)
@@ -182,6 +184,17 @@ def main():
                   "\"$(sudo getent shadow user | cut -d: -f2)\"\n")
         time.sleep(3)
         shot("05e-installer-password")
+        # Null OS Extras: the app, then one group from the command line
+        type_text("clear; null-extras gui &\n")
+        time.sleep(6)
+        shot("05f-extras-app")
+        key("esc")
+        time.sleep(2)
+        type_text("clear; grep -A1 sources-final /etc/calamares/settings.conf; sudo null-extras install homelab "
+                  "> /tmp/x.log 2>&1; tail -n 2 /tmp/x.log; kubectl version --client | head -n 1; "
+                  "terraform -version | head -n 1; ansible --version | head -n 1; null-extras list\n")
+        time.sleep(150)
+        shot("05g-extras-homelab")
         type_text("sudo -i\n")
         time.sleep(3)
         shot("06-root")

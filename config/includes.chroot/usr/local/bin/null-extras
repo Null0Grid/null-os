@@ -1,0 +1,237 @@
+#!/bin/bash
+# null-extras: the Null OS "Full" package, one group at a time.
+#
+# Used by the installer's Apps page (Calamares netinstall runs the prep/repo/
+# post steps inside the new system) and by the Null OS Extras app.
+#
+#   null-extras list                     groups and whether they're installed
+#   null-extras install <group|full>...  add repos, install, finish setup
+#   null-extras gui                      the Null OS Extras app (checklist)
+#   null-extras netinstall-conf          print the installer page config
+#   (installer steps)  prep | repo <name> | post <name> | play
+#
+# Installer steps never fail: a failed download only skips that app.
+
+set -u
+export DEBIAN_FRONTEND=noninteractive
+CODENAME=$(. /etc/os-release 2>/dev/null; echo "${VERSION_CODENAME:-trixie}")
+
+# group | title | description | repo | packages | post
+GROUPS_DATA='office|Office|LibreOffice Writer, Calc and Impress||libreoffice-writer libreoffice-calc libreoffice-impress|
+containers|Docker + Podman|Docker Engine, Docker Compose and Podman||docker.io docker-compose podman|docker
+qemu|QEMU/KVM + virt-manager|Virtual machines with the Linux hypervisor and virt-manager||virt-manager qemu-system-x86 qemu-utils libvirt-daemon-system|libvirt
+virtualbox|VirtualBox|Oracle VirtualBox 7.2 (builds its kernel module on install)|virtualbox|linux-headers-amd64 build-essential virtualbox-7.2|vbox
+vscode|VS Code|Microsoft Visual Studio Code (VSCodium stays installed too)|vscode|code|
+claude|Claude|Claude Desktop, the official Linux app from Anthropic|claude|claude-desktop|
+null-play|NULL // PLAY|Gamer Mode: Steam, Heroic, Lutris and installed games, controller-first||gamemode ddcutil bluez|play
+homelab|Homelab tools|Ansible, kubectl and Terraform|kubernetes hashicorp|ansible sshpass kubectl terraform|
+programming|Programming tools|Compilers and runtimes: build tools, Python, Node.js, Go, Rust, Java, GitHub CLI|| build-essential git cmake python3-venv python3-pip pipx nodejs npm golang-go rustc cargo default-jdk gh shellcheck sqlite3 jq|'
+
+field() { # field <group> <n>
+  printf '%s\n' "$GROUPS_DATA" | awk -F'|' -v g="$1" -v n="$2" '$1==g {print $n}'
+}
+group_ids() { printf '%s\n' "$GROUPS_DATA" | cut -d'|' -f1; }
+
+need_root() {
+  if [ "$(id -u)" -ne 0 ]; then exec sudo "$0" "$@"; fi
+}
+
+first_user() {
+  # uid 1000: the account made in the installer, or the live user. In the
+  # installer's chroot SUDO_USER is still the live user, so it comes second.
+  local u; u=$(getent passwd 1000 | cut -d: -f1)
+  if [ -z "$u" ] && [ -n "${SUDO_USER:-}" ] && [ "$SUDO_USER" != root ]; then u=$SUDO_USER; fi
+  echo "$u"
+}
+
+prep() {
+  # One apt index refresh per run (the installer calls this before every package)
+  local stamp=/run/null-extras-updated
+  [ -e "$stamp" ] && [ -n "$(find "$stamp" -mmin -30 2>/dev/null)" ] && return 0
+  apt-get update -qq && touch "$stamp" 2>/dev/null
+  return 0
+}
+
+repo() {
+  local name=$1 key keyfile list line
+  case "$name" in
+    vscode)
+      key=https://packages.microsoft.com/keys/microsoft.asc
+      keyfile=/usr/share/keyrings/null-extras-microsoft.asc
+      list=/etc/apt/sources.list.d/vscode.list
+      line="deb [arch=amd64 signed-by=$keyfile] https://packages.microsoft.com/repos/code stable main"
+      # code's own install script would add a second, conflicting copy
+      echo "code code/add-microsoft-repo boolean false" | debconf-set-selections 2>/dev/null ;;
+    claude)
+      key=https://downloads.claude.ai/claude-desktop/key.asc
+      keyfile=/usr/share/keyrings/claude-desktop-archive-keyring.asc
+      list=/etc/apt/sources.list.d/claude-desktop.list
+      line="deb [signed-by=$keyfile] https://downloads.claude.ai/claude-desktop/apt/stable stable main" ;;
+    virtualbox)
+      key=https://www.virtualbox.org/download/oracle_vbox_2016.asc
+      keyfile=/usr/share/keyrings/oracle_vbox_2016.asc
+      list=/etc/apt/sources.list.d/virtualbox.list
+      line="deb [arch=amd64 signed-by=$keyfile] https://download.virtualbox.org/virtualbox/debian $CODENAME contrib" ;;
+    kubernetes)
+      local minor
+      minor=$(curl -fsSL --max-time 15 https://dl.k8s.io/release/stable.txt 2>/dev/null | cut -d. -f1,2)
+      case "$minor" in v1.*) ;; *) minor=v1.34 ;; esac
+      key="https://pkgs.k8s.io/core:/stable:/$minor/deb/Release.key"
+      keyfile=/usr/share/keyrings/kubernetes-apt-keyring.asc
+      list=/etc/apt/sources.list.d/kubernetes.list
+      line="deb [signed-by=$keyfile] https://pkgs.k8s.io/core:/stable:/$minor/deb/ /" ;;
+    hashicorp)
+      local cn=$CODENAME
+      curl -fsI --max-time 15 "https://apt.releases.hashicorp.com/dists/$cn/Release" >/dev/null 2>&1 || cn=bookworm
+      key=https://apt.releases.hashicorp.com/gpg
+      keyfile=/usr/share/keyrings/hashicorp-archive-keyring.asc
+      list=/etc/apt/sources.list.d/hashicorp.list
+      line="deb [arch=amd64 signed-by=$keyfile] https://apt.releases.hashicorp.com $cn main" ;;
+    *) echo "null-extras: unknown repo $name" >&2; return 0 ;;
+  esac
+  if [ ! -s "$keyfile" ] || [ ! -s "$list" ]; then
+    if curl -fsSL --max-time 60 "$key" -o "$keyfile.tmp"; then
+      mv "$keyfile.tmp" "$keyfile"
+      echo "$line" > "$list"
+      rm -f /run/null-extras-updated
+    else
+      rm -f "$keyfile.tmp"
+      echo "null-extras: couldn't download the $name signing key; skipping" >&2
+    fi
+  fi
+  prep
+  return 0
+}
+
+play() {
+  dpkg -s null-play >/dev/null 2>&1 && return 0
+  local url tmp
+  url=$(curl -fsSL --max-time 30 https://api.github.com/repos/Null0Grid/null-play/releases/latest 2>/dev/null \
+        | grep -o '"browser_download_url": *"[^"]*\(amd64\|x86_64\)[^"]*\.deb"' | head -1 | cut -d'"' -f4)
+  if [ -z "$url" ]; then echo "null-extras: no NULL // PLAY release found" >&2; return 0; fi
+  tmp=$(mktemp -d)
+  if curl -fL --max-time 600 "$url" -o "$tmp/null-play.deb"; then
+    apt-get install -y -qq "$tmp/null-play.deb" || echo "null-extras: NULL // PLAY didn't install" >&2
+  fi
+  rm -rf "$tmp"
+  return 0
+}
+
+post() {
+  local u; u=$(first_user)
+  case "$1" in
+    docker)  [ -n "$u" ] && usermod -aG docker "$u" ;;
+    libvirt) [ -n "$u" ] && usermod -aG libvirt,kvm "$u"; systemctl enable libvirtd 2>/dev/null ;;
+    vbox)    [ -n "$u" ] && usermod -aG vboxusers "$u" ;;
+    play)    play ;;
+  esac
+  return 0
+}
+
+installed() { # installed <group>: all of its packages present?
+  local p
+  for p in $(field "$1" 5); do
+    dpkg -s "$p" >/dev/null 2>&1 || return 1
+  done
+  [ "$1" = null-play ] && ! dpkg -s null-play >/dev/null 2>&1 && return 1
+  return 0
+}
+
+install_groups() {
+  need_root install "$@"
+  local list=() g r p failed=()
+  for g in "$@"; do
+    if [ "$g" = full ]; then mapfile -t list < <(group_ids); break; fi
+    list+=("$g")
+  done
+  prep
+  for g in "${list[@]}"; do
+    if [ -z "$(field "$g" 1)" ]; then echo "Unknown group: $g (see: null-extras list)"; continue; fi
+    echo; echo "==> $(field "$g" 2)"
+    for r in $(field "$g" 4); do repo "$r"; done
+    # shellcheck disable=SC2046
+    if apt-get install -y $(field "$g" 5); then
+      p=$(field "$g" 6); [ -n "$p" ] && post "$p"
+    else
+      failed+=("$(field "$g" 2)")
+    fi
+  done
+  echo
+  if [ ${#failed[@]} -eq 0 ]; then echo "Done. Log out and back in for new group memberships (Docker, VMs)."
+  else echo "Done, but these didn't install: ${failed[*]}"; return 1; fi
+}
+
+list_groups() {
+  local g
+  for g in $(group_ids); do
+    if installed "$g"; then s="installed"; else s="-"; fi
+    printf '%-12s %-26s %s\n' "$g" "$(field "$g" 2)" "$s"
+  done
+}
+
+gui() {
+  local args=() g out
+  for g in $(group_ids); do
+    if installed "$g"; then
+      args+=("$g" "$(field "$g" 2) (installed)" off)
+    else
+      args+=("$g" "$(field "$g" 2): $(field "$g" 3)" on)
+    fi
+  done
+  out=$(kdialog --title "Null OS Extras" --geometry 640x460 \
+        --checklist "Pick apps to add. They download from the internet (the full set is a few GB)." \
+        "${args[@]}") || exit 0
+  # kdialog returns "a" "b" "c"
+  eval "set -- $out"
+  [ $# -eq 0 ] && exit 0
+  konsole --hold -e sudo /usr/local/bin/null-extras install "$@"
+}
+
+netinstall_conf() {
+  local g pkgs r pre post_cmd
+  cat <<'YAML'
+# Generated by null-extras netinstall-conf. The installer's "Apps" page:
+# leave "Null OS Full" unticked for a Minimal install.
+groupsUrl: local
+required: false
+label:
+  sidebar: "Apps"
+  title: "Minimal or Full"
+groups:
+  - name: "Null OS Full"
+    description: "Everything below. Leave unticked for Minimal. Needs internet; a few GB to download. Add any of it later with the Null OS Extras app."
+    selected: false
+    expanded: true
+    critical: false
+    packages: []
+    subgroups:
+YAML
+  for g in $(group_ids); do
+    pre="/usr/local/bin/null-extras prep"
+    for r in $(field "$g" 4); do pre="/usr/local/bin/null-extras repo $r"; done
+    if [ "$(field "$g" 4 | wc -w)" -gt 1 ]; then pre="/usr/local/bin/null-extras repo-all $g"; fi
+    post_cmd=""
+    [ -n "$(field "$g" 6)" ] && post_cmd="/usr/local/bin/null-extras post $(field "$g" 6)"
+    echo "      - name: \"$(field "$g" 2)\""
+    echo "        description: \"$(field "$g" 3)\""
+    echo "        selected: false"
+    echo "        critical: false"
+    echo "        pre-install: $pre"
+    [ -n "$post_cmd" ] && echo "        post-install: $post_cmd"
+    echo "        packages:"
+    for pkgs in $(field "$g" 5); do echo "          - $pkgs"; done
+  done
+}
+
+case "${1:-}" in
+  list) list_groups ;;
+  install) shift; [ $# -gt 0 ] || { echo "usage: null-extras install <group|full>..."; exit 2; }; install_groups "$@" ;;
+  gui) gui ;;
+  netinstall-conf) netinstall_conf ;;
+  prep) prep ;;
+  repo) repo "${2:-}" ;;
+  repo-all) for r in $(field "${2:-}" 4); do repo "$r"; done; exit 0 ;;
+  post) post "${2:-}" ;;
+  play) play ;;
+  *) sed -n '2,13p' "$0" | sed 's/^# \{0,1\}//'; exit 2 ;;
+esac
