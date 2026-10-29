@@ -18,6 +18,10 @@ on:
         description: "Mark as pre-release"
         type: boolean
         default: false
+      sources_only:
+        description: "Only (re)upload the source-code listing, leave the ISO alone"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -50,7 +54,16 @@ jobs:
           xorriso -osirrox on -indev "$ISO" -extract /live/filesystem.packages fs.packages
           docker run --rm -v "$PWD:/w" -w /w debian:trixie bash tools/make-sources.sh fs.packages "$VER" iso
           ls -l iso
+      - name: Upload only the source-code listing
+        if: inputs.sources_only
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release upload "$TAG" iso/*SOURCES.md iso/*sources.tsv -R "${{ github.repository }}" --clobber
+          [ -f "docs/release-notes-$TAG.md" ] && gh release edit "$TAG" -R "${{ github.repository }}" --notes-file "docs/release-notes-$TAG.md"
+          echo "::notice::source listing updated on $TAG"
       - name: Split if over 2 GiB
+        if: ${{ !inputs.sources_only }}
         shell: bash
         run: |
           set -euo pipefail
@@ -67,6 +80,7 @@ jobs:
           echo "ISO=$ISO" >> "$GITHUB_ENV"
           ls -l
       - name: Create release
+        if: ${{ !inputs.sources_only }}
         shell: bash
         run: |
           set -euo pipefail

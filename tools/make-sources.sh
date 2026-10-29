@@ -12,6 +12,10 @@ mkdir -p "$OUT"
 TSV="$OUT/nullos-$VER-sources.tsv"
 MD="$OUT/nullos-$VER-SOURCES.md"
 export DEBIAN_FRONTEND=noninteractive
+# Null OS ships firmware from contrib/non-free/non-free-firmware too
+if [ -f /etc/apt/sources.list.d/debian.sources ]; then
+  sed -i -E 's/^Components:.*/Components: main contrib non-free non-free-firmware/' /etc/apt/sources.list.d/debian.sources
+fi
 apt-get update -qq >/dev/null
 
 printf 'binary\tversion\tsource\tsource_version\n' > "$TSV"
