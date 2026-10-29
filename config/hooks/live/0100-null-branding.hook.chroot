@@ -192,6 +192,15 @@ MIME
       sed -i '/^ *- packages$/d' $SC
       sed -i 's/^\( *\)- sources-final$/\1- sources-final\n\1- packages/' $SC
     fi
+    # Last page: Packet waving (or error eyes if the install failed)
+    BR=/etc/calamares/branding/debian
+    if [ -d $BR ] && [ -f /usr/share/null-os/calamares/finishedq.qml ]; then
+      cp /usr/share/null-os/calamares/finishedq.qml /usr/share/null-os/packet-happy-wave.png \
+         /usr/share/null-os/packet-error.png $BR/
+      printf 'qmlSearch: both\nrestartNowMode: user-unchecked\nrestartNowCommand: "systemctl -i reboot"\nnotifyOnFinished: false\n' \
+        > /etc/calamares/modules/finishedq.conf
+      sed -i 's/^\( *\)- finished$/\1- finishedq/' $SC
+    fi
     echo "Calamares sequence:"; sed -n '/^sequence:/,/^branding/p' $SC
   else
     echo "WARNING: Calamares settings or null-extras missing; no Apps page" >&2

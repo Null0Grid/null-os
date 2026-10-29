@@ -199,7 +199,7 @@ def main():
         shot("05f3-extras-done")
         key("esc")
         time.sleep(2)
-        type_text("clear; grep -A1 sources-final /etc/calamares/settings.conf; kubectl version --client | head -n 1; "
+        type_text("clear; grep -E 'finished|sources-final' -A1 /etc/calamares/settings.conf; ls /etc/calamares/branding/debian/;  kubectl version --client | head -n 1; "
                   "terraform -version | head -n 1; nmap --version | head -n 1; sudo ufw status | head -n 1; null-extras list\n")
         time.sleep(8)
         shot("05g-extras-homelab")
