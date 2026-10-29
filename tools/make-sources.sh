@@ -15,20 +15,23 @@ export DEBIAN_FRONTEND=noninteractive
 apt-get update -qq >/dev/null
 
 printf 'binary\tversion\tsource\tsource_version\n' > "$TSV"
-while read -r name ver _; do
-  [ -n "${name:-}" ] || continue
-  name=${name%%:*}
-  info=$(apt-cache show --no-all-versions "$name=$ver" 2>/dev/null || true)
-  if [ -z "$info" ]; then
-    printf '%s\t%s\t%s\t%s\n' "$name" "$ver" "-" "-" >> "$TSV"   # not from Debian
-    continue
-  fi
-  src=$(printf '%s\n' "$info" | awk '/^Source:/{print $2; exit}')
-  sver=$(printf '%s\n' "$info" | awk '/^Source:/{gsub(/[()]/,"",$3); print $3; exit}')
-  [ -n "$src" ] || src=$name
-  [ -n "$sver" ] || sver=$ver
-  printf '%s\t%s\t%s\t%s\n' "$name" "$ver" "$src" "$sver" >> "$TSV"
-done < "$PKG"
+# One batched apt-cache call (per-package calls take ~25 min for ~1600)
+awk 'NF>=2 {n=$1; sub(/:.*/, "", n); print n "=" $2}' "$PKG" > "$OUT/.want"
+xargs -a "$OUT/.want" -n 200 apt-cache show --no-all-versions 2>/dev/null \
+  | awk -v RS= -F'\n' '{
+      p=""; v=""; s=""; sv="";
+      for (i = 1; i <= NF; i++) {
+        if ($i ~ /^Package: /) p = substr($i, 10)
+        else if ($i ~ /^Version: /) v = substr($i, 10)
+        else if ($i ~ /^Source: /) { split(substr($i, 9), a, " "); s = a[1]; sv = a[2]; gsub(/[()]/, "", sv) }
+      }
+      if (p != "") { if (s == "") s = p; if (sv == "") sv = v; print p "\t" v "\t" s "\t" sv }
+    }' > "$OUT/.found"
+# binaries apt didn't know (not from Debian) get "-"
+awk 'NF>=2 {n=$1; sub(/:.*/, "", n); print n "\t" $2}' "$PKG" \
+  | awk -F'\t' 'NR==FNR {f[$1 "\t" $2] = $3 "\t" $4; next}
+                 {k = $1 "\t" $2; print k "\t" ((k in f) ? f[k] : "-\t-")}' "$OUT/.found" - >> "$TSV"
+rm -f "$OUT/.want" "$OUT/.found"
 
 nbin=$(($(wc -l < "$TSV") - 1))
 nsrc=$(tail -n +2 "$TSV" | awk -F'\t' '$3!="-"{print $3"\t"$4}' | sort -u | wc -l)
