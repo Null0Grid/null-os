@@ -448,10 +448,9 @@ def tour_install(sc, cap, work):
     sc.start("finished", "ALL DONE", "packet says hi", speed=1.0)
     time.sleep(8)
     step(work, "9-finished")
-    # Close the installer (Done), then restart from the terminal behind it
-    key("alt-d")
-    time.sleep(3)
-    type_text("sudo reboot\n")
+    # The install is finished and unmounted: restart the VM into the new
+    # disk (more reliable than steering focus back to the terminal)
+    monitor("system_reset")
     sc.start("reboot", "FIRST BOOT", "from the disk", speed=3.0)
     # No keys until the login screen: a key press at the boot menu stops
     # its countdown. Boot from the new disk takes ~1.5-2.5 min here.
