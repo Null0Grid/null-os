@@ -26,6 +26,15 @@ ark
 kde-spectacle
 calamares
 calamares-settings-debian
+# Installer runtime (recommends, or pulled from Debian's ISO package pool,
+# which Null OS doesn't have): copy the system, GRUB for BIOS and UEFI,
+# encrypted installs
+squashfs-tools
+grub2-common
+grub-pc-bin
+grub-efi-amd64-bin
+efibootmgr
+cryptsetup-initramfs
 # Dictionary for the installer's password check (a recommend, so not pulled in)
 cracklib-runtime
 plymouth

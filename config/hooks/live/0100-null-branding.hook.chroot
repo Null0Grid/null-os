@@ -192,6 +192,47 @@ MIME
       sed -i '/^ *- packages$/d' $SC
       sed -i 's/^\( *\)- sources-final$/\1- sources-final\n\1- packages/' $SC
     fi
+    # Bootloader: Debian's helper apt-installs grub-efi/grub-pc from the ISO's
+    # package pool. Null OS ships the GRUB tools in the system instead, so
+    # try the metapackage (works online) and carry on either way; the
+    # installer's grub-install uses the tools already there.
+    BC=/usr/share/calamares/helpers/calamares-bootloader-config
+    if [ -f $BC ]; then
+      cat > $BC <<'BOOT'
+#!/bin/sh
+# Null OS version of Debian's calamares-bootloader-config (see build hook)
+CHROOT=$(mount | grep proc | grep calamares | awk '{print $3}' | sed -e "s#/proc##g")
+if [ "$(mount | grep "$CHROOT " | cut -c -16)" = "/dev/mapper/luks" ]; then
+    echo "UMASK=0077" > "$CHROOT/etc/initramfs-tools/conf.d/initramfs-permissions"
+fi
+echo "Running bootloader-config (Null OS)..."
+if [ -d /sys/firmware/efi/efivars ]; then
+    DEBIAN_FRONTEND=noninteractive chroot "$CHROOT" apt-get -y install grub-efi-amd64 || true
+fi
+[ -f "$CHROOT/etc/default/grub" ] && sed -i "s/#GRUB_DISABLE_OS_PROBER=false/GRUB_DISABLE_OS_PROBER=false/" "$CHROOT/etc/default/grub"
+chroot "$CHROOT" /usr/sbin/update-grub || true
+exit 0
+BOOT
+      chmod 755 $BC
+    fi
+
+    # Installed systems get GRUB settings even without the grub-pc/grub-efi
+    # metapackage (it normally writes this file): Null OS name, boot splash
+    if [ ! -f /etc/default/grub ] && [ -f /usr/share/grub/default/grub ]; then
+      cp /usr/share/grub/default/grub /etc/default/grub
+    fi
+    if [ -f /etc/default/grub ]; then
+      sed -i -E 's/^GRUB_DISTRIBUTOR=.*/GRUB_DISTRIBUTOR="Null OS"/; s/^GRUB_CMDLINE_LINUX_DEFAULT=.*/GRUB_CMDLINE_LINUX_DEFAULT="quiet splash"/' /etc/default/grub
+    fi
+
+    # Installer pictures: Null OS instead of Debian's
+    if [ -d /etc/calamares/branding/debian ]; then
+      cp /usr/share/null-os/null-mark-256.png /etc/calamares/branding/debian/debian-logo.png
+      cp /usr/share/null-os/null-mark-256.png /etc/calamares/branding/debian/welcome.png
+      W=/usr/share/wallpapers/NullOS/contents/images/1920x1080.png
+      [ -f $W ] && cp $W /etc/calamares/branding/debian/slide1.png
+    fi
+
     # Last page: Packet waving (or error eyes if the install failed)
     BR=/etc/calamares/branding/debian
     if [ -d $BR ] && [ -f /usr/share/null-os/calamares/finishedq.qml ]; then
