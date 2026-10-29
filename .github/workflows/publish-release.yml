@@ -37,6 +37,19 @@ jobs:
           run-id: ${{ inputs.run_id }}
           github-token: ${{ github.token }}
           path: iso
+      - name: Source-code listing (GPL)
+        # Which Debian source package and version built each binary on the
+        # ISO, plus where to get them; uploaded next to the ISO
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get install -y -qq xorriso >/dev/null
+          ISO=$(ls iso/*.iso | head -1)
+          VER=$(basename "$ISO" | sed -E 's/^nullos-([^-]+)-.*/\1/')
+          xorriso -osirrox on -indev "$ISO" -extract /live/filesystem.packages fs.packages
+          docker run --rm -v "$PWD:/w" -w /w debian:trixie bash tools/make-sources.sh fs.packages "$VER" iso
+          ls -l iso
       - name: Split if over 2 GiB
         shell: bash
         run: |

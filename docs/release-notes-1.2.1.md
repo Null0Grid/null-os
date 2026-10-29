@@ -15,5 +15,8 @@ Use this instead of 1.2.0: on 1.2.0 and earlier, installing to a disk failed at 
 ## Known
 - Secure Boot isn't supported yet: turn it off in the firmware settings to install on a PC.
 
+## Source code
+Null OS is Debian 13 packages plus this repository's build configuration. `nullos-1.2.1-SOURCES.md` (attached) says where every source lives; `nullos-1.2.1-sources.tsv` lists each package on the ISO with its exact Debian source version.
+
 ## VirtualBox
 Linux / Debian (64-bit), 4 GB RAM, 2+ CPUs, Graphics **VBoxSVGA**, 128 MB video memory, 3D off, 25 GB disk. Live login: user `user`, password `live`.
