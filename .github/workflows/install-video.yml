@@ -7,7 +7,12 @@ on:
     inputs:
       release_tag:
         description: "Release whose ISO to install (e.g. 1.2.0)"
-        required: true
+        required: false
+        default: ""
+      run_id:
+        description: "Or: Build run ID whose ISO artifact to install"
+        required: false
+        default: ""
 
 jobs:
   demo:
@@ -18,7 +23,15 @@ jobs:
       actions: read
     steps:
       - uses: actions/checkout@v4
+      - name: ISO from a build
+        if: inputs.run_id != ''
+        uses: actions/download-artifact@v4
+        with:
+          name: null-os-iso
+          run-id: ${{ inputs.run_id }}
+          github-token: ${{ github.token }}
       - name: ISO from the release
+        if: inputs.run_id == ''
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh release download "${{ inputs.release_tag }}" -R "${{ github.repository }}" -p '*.iso'
@@ -66,7 +79,7 @@ jobs:
           git init -q -b install-video
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          printf '# Null OS install\n\nRecorded from release %s on %s.\n\n![poster](null-os-install-poster.png)\n\n[Watch null-os-install.mp4](null-os-install.mp4)\n' "${{ inputs.release_tag }}" "$(date -u +%F)" > README.md
+          printf '# Null OS install\n\nRecorded from %s on %s.\n\n![poster](null-os-install-poster.png)\n\n[Watch null-os-install.mp4](null-os-install.mp4)\n' "${{ inputs.release_tag }}${{ inputs.run_id }}" "$(date -u +%F)" > README.md
           git add -A
-          git commit -q -m "Install video from release ${{ inputs.release_tag }}"
+          git commit -q -m "Install video from ${{ inputs.release_tag }}${{ inputs.run_id }}"
           git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" install-video
