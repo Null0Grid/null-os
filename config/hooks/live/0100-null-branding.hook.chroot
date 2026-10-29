@@ -105,14 +105,16 @@ DEF
   # Taskbar pins that are always there in Minimal (Discover and friends
   # are part of Full, and a missing pin shows as a "?")
   for f in $LNF/org.nullos.desktop/contents/layouts/org.kde.plasma.desktop-layout.js \
-           /usr/share/plasma/shells/org.kde.plasma.desktop/contents/layout.js; do
+           /usr/share/plasma/shells/org.kde.plasma.desktop/contents/layout.js \
+           /usr/share/plasma/layout-templates/org.kde.plasma.desktop.defaultPanel/contents/layout.js; do
     [ -f "$f" ] || continue
+    echo "taskbar pins added to $f"
     cat >> "$f" <<'JS'
 
 // ---- Null OS: taskbar pins ----
 panels().forEach(function (p) {
   p.widgets().forEach(function (w) {
-    if (w.type.indexOf("taskmanager") !== -1) {
+    if (/tasks$|taskmanager$/.test(w.type)) {   // icontasks (default) or taskmanager
       w.currentConfigGroup = ["General"];
       w.writeConfig("launchers", ["applications:systemsettings.desktop", "preferred://filemanager",
                                   "preferred://browser", "applications:org.kde.konsole.desktop"]);
