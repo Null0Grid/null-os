@@ -211,7 +211,7 @@ def record(iso, work):
         cap.start()
 
         time.sleep(4)
-        sc.start("boot-menu", "BOOT MENU", "null os 1.1.0 / live usb")
+        sc.start("boot-menu", "BOOT MENU", "null os 1.2.0 / live usb")
         time.sleep(4)
         key("ret")
         time.sleep(5)
@@ -261,7 +261,7 @@ def record(iso, work):
         time.sleep(3)
         type_text("exit\n")
         time.sleep(1)
-        sc.start("fastfetch", "FASTFETCH", "null os 1.1.0 on a debian 13 base", speed=1.2)
+        sc.start("fastfetch", "FASTFETCH", "null os 1.2.0 on a debian 13 base", speed=1.2)
         type_text("clear; fastfetch\n")
         time.sleep(4)
         sc.start("shortcuts", "NEW APP? PIN IT", "every install asks: add to desktop", speed=2.6)
@@ -414,7 +414,7 @@ def edit(work, out):
     parts.append(f"[1:v]{norm},zoompan=z='min(zoom+0.0007\\,1.08)':d=1:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s={W}x{H}:fps={FPS},"
                  f"drawtext=fontfile='{ftitle}':text='NULL OS':fontsize=72:fontcolor=0xffffff:"
                  f"x=(w-text_w)/2:y=h-200:alpha='if(lt(t\\,0.6)\\,0\\,min(1\\,(t-0.6)/0.6))',"
-                 f"drawtext=fontfile='{fsub}':text='debian based // neon lab // v1.1.0':fontsize=34:fontcolor=0x00e5ff:"
+                 f"drawtext=fontfile='{fsub}':text='debian based // neon lab // v1.2.0':fontsize=34:fontcolor=0x00e5ff:"
                  f"x=(w-text_w)/2:y=h-118:alpha='if(lt(t\\,1.1)\\,0\\,min(1\\,(t-1.1)/0.6))',"
                  f"fade=t=in:st=0:d=0.5,fade=t=out:st=2.8:d=0.4[intro]")
     labels.append("[intro]")

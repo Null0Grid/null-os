@@ -58,6 +58,12 @@ jobs:
             gh release delete-asset "$TAG" "$a" -R "$R" -y
           done
           gh release upload "$TAG" "$ISO" "$ISO.sha256" -R "$R" --clobber
+          NOTES="docs/release-notes-$TAG.md"
+          if [ -f "$NOTES" ]; then
+            gh release edit "$TAG" -R "$R" --title "Null OS $TAG" --notes-file "$NOTES"
+          else
+            gh release edit "$TAG" -R "$R" --title "Null OS $TAG"
+          fi
           echo "::notice::$ISO is on release $TAG"
       - name: Upload build log on failure
         if: failure()
