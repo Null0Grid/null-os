@@ -159,8 +159,11 @@ post() {
 
 installed() { # installed <group>: all of its packages present?
   local p
+  local provided
+  provided=$(dpkg-query -W -f='${Package} ${Provides}\n' 2>/dev/null | tr ',' ' ')
   for p in $(field "$1" 5); do
-    dpkg -s "$p" >/dev/null 2>&1 || return 1
+    # a name apt resolved to another package (virtual or renamed) counts too
+    dpkg -s "$p" >/dev/null 2>&1 || grep -qw -- "$p" <<<"$provided" || return 1
   done
   [ "$1" = null-play ] && ! dpkg -s null-play >/dev/null 2>&1 && return 1
   return 0

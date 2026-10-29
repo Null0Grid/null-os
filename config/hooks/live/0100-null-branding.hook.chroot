@@ -102,6 +102,26 @@ Image=NullOS
 DEF
   fi
 
+  # Taskbar pins that are always there in Minimal (Discover and friends
+  # are part of Full, and a missing pin shows as a "?")
+  for f in $LNF/org.nullos.desktop/contents/layouts/org.kde.plasma.desktop-layout.js \
+           /usr/share/plasma/shells/org.kde.plasma.desktop/contents/layout.js; do
+    [ -f "$f" ] || continue
+    cat >> "$f" <<'JS'
+
+// ---- Null OS: taskbar pins ----
+panels().forEach(function (p) {
+  p.widgets().forEach(function (w) {
+    if (w.type.indexOf("taskmanager") !== -1) {
+      w.currentConfigGroup = ["General"];
+      w.writeConfig("launchers", ["applications:systemsettings.desktop", "preferred://filemanager",
+                                  "preferred://browser", "applications:org.kde.konsole.desktop"]);
+    }
+  });
+});
+JS
+  done
+
   # Fallback: anything still pointing at Plasma's stock "Next" wallpaper
   # (lock screen, new desktops) shows the Null OS wallpaper instead.
   if [ -d /usr/share/wallpapers/Next ]; then
