@@ -15,7 +15,9 @@ Shots taken:
   05c-shortcut-offer  "Add to desktop?" notification after an app install
   05c2-show-in-folder Null File answering "Show in folder" (FileManager1 D-Bus)
   05e-installer-password  cracklib dictionary present, weak-password option on
-  05f-extras-app      Null OS Extras checklist
+  05f-extras-app      Null OS Extras: pick page
+  05f2-extras-installing  the app installing Homelab, Network, Firewall
+  05f3-extras-done    the app's summary
   05g-extras-homelab  homelab, network and firewall groups installed from the internet
   06b-lock-screen     lock screen (Super+L)
   06c-unlocked        unlocked again with the live password
@@ -184,17 +186,22 @@ def main():
                   "\"$(sudo getent shadow user | cut -d: -f2)\"\n")
         time.sleep(3)
         shot("05e-installer-password")
-        # Null OS Extras: the app, then one group from the command line
+        # Null OS Extras: pick page, then the app installing three groups
         type_text("clear; null-extras gui &\n")
-        time.sleep(6)
+        time.sleep(8)
         shot("05f-extras-app")
         key("esc")
         time.sleep(2)
-        type_text("clear; grep -A1 sources-final /etc/calamares/settings.conf; sudo null-extras install homelab "
-                  "> /tmp/x.log 2>&1; sudo null-extras install network firewall >> /tmp/x.log 2>&1; "
-                  "tail -n 1 /tmp/x.log; kubectl version --client | head -n 1; terraform -version | head -n 1; "
-                  "nmap --version | head -n 1; sudo ufw status | head -n 1; null-extras list\n")
-        time.sleep(260)
+        type_text("clear; null-extras gui --select homelab,network,firewall --start &\n")
+        time.sleep(70)
+        shot("05f2-extras-installing")
+        time.sleep(200)
+        shot("05f3-extras-done")
+        key("esc")
+        time.sleep(2)
+        type_text("clear; grep -A1 sources-final /etc/calamares/settings.conf; kubectl version --client | head -n 1; "
+                  "terraform -version | head -n 1; nmap --version | head -n 1; sudo ufw status | head -n 1; null-extras list\n")
+        time.sleep(8)
         shot("05g-extras-homelab")
         type_text("sudo -i\n")
         time.sleep(3)

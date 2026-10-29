@@ -38,4 +38,6 @@ wireplumber
 xdg-user-dirs
 xdg-utils
 kdialog
+# Null OS Extras app
+python3-pyqt6
 libnotify-bin

@@ -176,16 +176,25 @@ install_groups() {
     if [ "$g" = full ]; then mapfile -t list < <(group_ids); break; fi
     list+=("$g")
   done
+  # NULL_EXTRAS_PROGRESS=1 (the Extras app): @@ lines plus apt's status
+  # lines (pmstatus/dlstatus) on stdout, for the progress bar
+  local prog=() n=0 total=${#list[@]}
+  [ "${NULL_EXTRAS_PROGRESS:-}" = 1 ] && prog=(-o APT::Status-Fd=1)
+  [ ${#prog[@]} -gt 0 ] && echo "@@STEP 0 $total Getting the package lists"
   prep
   for g in "${list[@]}"; do
+    n=$((n + 1))
     if [ -z "$(field "$g" 1)" ]; then echo "Unknown group: $g (see: null-extras list)"; continue; fi
     echo; echo "==> $(field "$g" 2)"
+    [ ${#prog[@]} -gt 0 ] && echo "@@STEP $n $total $(field "$g" 2)"
     for r in $(field "$g" 4); do repo "$r"; done
     # shellcheck disable=SC2046
-    if apt-get install -y $(field "$g" 5); then
+    if apt-get install -y "${prog[@]}" $(field "$g" 5); then
       p=$(field "$g" 6); [ -n "$p" ] && post "$p"
+      [ ${#prog[@]} -gt 0 ] && echo "@@OK $g"
     else
       failed+=("$(field "$g" 2)")
+      [ ${#prog[@]} -gt 0 ] && echo "@@FAIL $g"
     fi
   done
   echo
@@ -195,6 +204,13 @@ install_groups() {
 
 list_groups() {
   local g
+  if [ "${1:-}" = --tsv ]; then   # for the Extras app: id, title, description, installed
+    for g in $(group_ids); do
+      if installed "$g"; then s=1; else s=0; fi
+      printf '%s\t%s\t%s\t%s\n' "$g" "$(field "$g" 2)" "$(field "$g" 3)" "$s"
+    done
+    return
+  fi
   for g in $(group_ids); do
     if installed "$g"; then s="installed"; else s="-"; fi
     printf '%-12s %-26s %s\n' "$g" "$(field "$g" 2)" "$s"
@@ -202,18 +218,17 @@ list_groups() {
 }
 
 gui() {
+  # The Null OS Extras app (PyQt6); the old checklist if it can't start
+  if python3 -c 'import PyQt6.QtWidgets' 2>/dev/null; then
+    exec python3 /usr/share/null-os/extras/null-extras-gui.py "$@"
+  fi
   local args=() g out
   for g in $(group_ids); do
-    if installed "$g"; then
-      args+=("$g" "$(field "$g" 2) (installed)" off)
-    else
-      args+=("$g" "$(field "$g" 2): $(field "$g" 3)" on)
-    fi
+    if installed "$g"; then args+=("$g" "$(field "$g" 2) (installed)" off)
+    else args+=("$g" "$(field "$g" 2): $(field "$g" 3)" on); fi
   done
   out=$(kdialog --title "Null OS Extras" --geometry 640x460 \
-        --checklist "Pick apps to add. They download from the internet (the full set is a few GB)." \
-        "${args[@]}") || exit 0
-  # kdialog returns "a" "b" "c"
+        --checklist "Pick apps to add. They download from the internet." "${args[@]}") || exit 0
   eval "set -- $out"
   [ $# -eq 0 ] && exit 0
   konsole --hold -e sudo /usr/local/bin/null-extras install "$@"
@@ -256,9 +271,9 @@ YAML
 }
 
 case "${1:-}" in
-  list) list_groups ;;
+  list) list_groups "${2:-}" ;;
   install) shift; [ $# -gt 0 ] || { echo "usage: null-extras install <group|full>..."; exit 2; }; install_groups "$@" ;;
-  gui) gui ;;
+  gui) shift; gui "$@" ;;
   netinstall-conf) netinstall_conf ;;
   prep) prep ;;
   repo) repo "${2:-}" ;;
