@@ -23,7 +23,12 @@ jobs:
         run: |
           set -e
           apt-get update -qq
-          cd /tmp && apt-get download -qq "${{ inputs.package }}"
+          for p in ${{ inputs.package }}; do
+            f=$(apt-cache show "$p" 2>/dev/null | awk '/^Package:/{n++} n==1' | grep -E '^(Depends|Pre-Depends|Recommends|Suggests):' | sed 's/%/%25/g' | awk '{printf "%s%%0A", $0}')
+            echo "::notice title=control $p::$f"
+          done
+          set -- ${{ inputs.package }}
+          cd /tmp && apt-get download -qq "$1"
           dpkg-deb -x *.deb pkg
           echo "::notice::files: $(cd pkg && find . -type f | grep -E 'calamares|\.conf$' | tr '\n' ' ' | head -c 3500)"
           cd pkg
