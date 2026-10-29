@@ -239,6 +239,8 @@ BOOT
     # "Welcome to the Null OS installer"
     if [ -d /etc/calamares/branding/debian ] && [ -f /usr/share/null-os/calamares/show.qml ]; then
       cp /usr/share/null-os/calamares/show.qml /usr/share/null-os/packet-loading.png /etc/calamares/branding/debian/
+      CK=$(find /usr/share/icons/NullLine -name 'dialog-ok-apply.svg' 2>/dev/null | head -1)
+      [ -n "$CK" ] && cp -L "$CK" /etc/calamares/branding/debian/check.svg
       python3 - "$SC" <<'PY2'
 import sys
 sc = sys.argv[1]

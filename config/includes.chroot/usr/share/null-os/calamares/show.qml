@@ -229,13 +229,25 @@ Item {
                             }
                             RotationAnimator on rotation { from: 0; to: 360; duration: 900; loops: Animation.Infinite; running: row.active }
                         }
-                        Text {                         // check
+                        Item {                         // check: the NullLine one (as in Null OS Extras)
                             id: check
-                            anchors.centerIn: parent
-                            text: "✓"; color: root.green
-                            font.pixelSize: 19 * root.u; font.bold: true
+                            anchors.fill: parent
                             visible: row.done
                             scale: 1
+                            Image {
+                                id: checkIcon
+                                anchors.centerIn: parent
+                                width: 20 * root.u; height: width
+                                source: "check.svg"
+                                sourceSize.width: 64; sourceSize.height: 64
+                                smooth: true
+                            }
+                            Text {                     // if the icon is missing
+                                anchors.centerIn: parent
+                                visible: checkIcon.status !== Image.Ready
+                                text: "✓"; color: root.green
+                                font.pixelSize: 19 * root.u; font.bold: true
+                            }
                         }
                         Rectangle {                    // ring burst when it finishes
                             id: burst
