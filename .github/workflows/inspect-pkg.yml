@@ -1,0 +1,37 @@
+name: Inspect a Debian package
+
+# Prints files from a trixie package as annotations (logs can't be read from
+# the Claude session). Actions > Inspect a Debian package > Run workflow.
+
+on:
+  workflow_dispatch:
+    inputs:
+      package:
+        description: "Package name"
+        required: true
+      files:
+        description: "Space-separated globs inside the package to print"
+        required: true
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    container: debian:trixie
+    steps:
+      - name: Print files
+        shell: bash
+        run: |
+          set -e
+          apt-get update -qq
+          cd /tmp && apt-get download -qq "${{ inputs.package }}"
+          dpkg-deb -x *.deb pkg
+          echo "::notice::files: $(cd pkg && find . -type f | grep -E 'calamares|\.conf$' | tr '\n' ' ' | head -c 3500)"
+          cd pkg
+          for g in ${{ inputs.files }}; do
+            for f in $g; do
+              [ -f "$f" ] || continue
+              # annotations are capped at ~4 KB; strip comments and blanks
+              body=$(grep -vE '^\s*#|^\s*$' "$f" | sed 's/%/%25/g' | awk '{printf "%s%%0A", $0}')
+              echo "::notice title=$f::${body:0:3900}"
+            done
+          done
