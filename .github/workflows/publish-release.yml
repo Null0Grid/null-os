@@ -30,6 +30,7 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       TAG: ${{ inputs.tag }}
     steps:
+      - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
           name: null-os-iso
@@ -77,6 +78,7 @@ jobs:
             echo
             echo "Built from $SHA (run ${{ inputs.run_id }})."
           } > notes.md
+          [ -f "docs/release-notes-$TAG.md" ] && cp "docs/release-notes-$TAG.md" notes.md
           R="${{ github.repository }}"
           # The workflow token can't create tags here (GitHub blocks it for
           # commits that touch workflows), so the release is made by hand in

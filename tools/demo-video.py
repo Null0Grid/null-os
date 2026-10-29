@@ -258,7 +258,7 @@ def record(iso, work, kind="demo"):
 def tour_demo(sc, cap, work):
 
     time.sleep(4)
-    sc.start("boot-menu", "BOOT MENU", "null os 1.2.0 / live usb")
+    sc.start("boot-menu", "BOOT MENU", "null os 1.2.1 / live usb")
     time.sleep(4)
     key("ret")
     time.sleep(5)
@@ -308,7 +308,7 @@ def tour_demo(sc, cap, work):
     time.sleep(3)
     type_text("exit\n")
     time.sleep(1)
-    sc.start("fastfetch", "FASTFETCH", "null os 1.2.0 on a debian 13 base", speed=1.2)
+    sc.start("fastfetch", "FASTFETCH", "null os 1.2.1 on a debian 13 base", speed=1.2)
     type_text("clear; fastfetch\n")
     time.sleep(4)
     sc.start("shortcuts", "NEW APP? PIN IT", "every install asks: add to desktop", speed=2.6)
@@ -375,7 +375,7 @@ def finished_page():
 
 def tour_install(sc, cap, work):
     time.sleep(4)
-    sc.start("boot-menu", "BOOT MENU", "null os 1.2.0 / live usb")
+    sc.start("boot-menu", "BOOT MENU", "null os 1.2.1 / live usb")
     time.sleep(3)
     key("ret")
     time.sleep(5)
@@ -452,12 +452,14 @@ def tour_install(sc, cap, work):
     key("alt-d")
     time.sleep(3)
     type_text("sudo reboot\n")
-    sc.start("reboot", "FIRST BOOT", "from the disk", speed=2.5)
-    time.sleep(70)
+    sc.start("reboot", "FIRST BOOT", "from the disk", speed=3.0)
+    # No keys until the login screen: a key press at the boot menu stops
+    # its countdown. Boot from the new disk takes ~1.5-2.5 min here.
+    time.sleep(150)
     step(work, "10-login")
     sc.start("login", "LOG IN", "the account you just made", speed=1.2)
     type_text("Tr0ub4dor-Lab-77\n")
-    time.sleep(20)
+    time.sleep(35)
     sc.start("installed", "NULL OS, INSTALLED", "minimal: just the desktop", speed=1.0)
     time.sleep(6)
     step(work, "11-desktop")
@@ -515,7 +517,7 @@ def edit(work, out):
     ftitle, fsub = fonts()
     kind_file = os.path.join(work, "kind.txt")
     kind = open(kind_file).read().strip() if os.path.exists(kind_file) else "demo"
-    tagline = "installing null os 1.2.0" if kind == "install" else "debian based // neon lab // v1.2.0"
+    tagline = "installing null os 1.2.1" if kind == "install" else "debian based // neon lab // v1.2.1"
     scenes = json.load(open(os.path.join(work, "scenes.json")))
     raw = os.path.join(work, "raw.mkv")
     # Text-free wallpaper (the login background), so titles don't double up

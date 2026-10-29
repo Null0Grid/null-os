@@ -231,6 +231,7 @@ BOOT
       cp /usr/share/null-os/null-mark-256.png /etc/calamares/branding/debian/welcome.png
       W=/usr/share/wallpapers/NullOS/contents/images/1920x1080.png
       [ -f $W ] && cp $W /etc/calamares/branding/debian/slide1.png
+      sed -i "s/Debian GNU\/Linux/$NULL_NAME/g; s/Debian/$NULL_NAME/g" /etc/calamares/branding/debian/show.qml 2>/dev/null || true
     fi
 
     # Last page: Packet waving (or error eyes if the install failed)

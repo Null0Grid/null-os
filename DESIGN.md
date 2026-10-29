@@ -1,6 +1,6 @@
 # Null OS — Design
 
-The decisions behind Null OS 1.2.0. Change this file first, then the build.
+The decisions behind Null OS 1.2.1. Change this file first, then the build.
 
 ## Identity
 
@@ -74,7 +74,7 @@ A ring crossed by two parallel slashes (echoes the Null Grid `//` family mark).
 | USB | Live persistence (`tools/make-usb.sh` adds the partition) |
 | Live session | User `user` / `live`, auto-login straight into Plasma |
 
-## Status (1.2.0, verified in a VM on every build)
+## Status (1.2.1, verified in a VM on every build)
 
 Working: Null OS boot menu, glitch startup animation, live auto-login into
 Plasma, Null OS wallpaper / colors / NullLine icons / Silkscreen titles,
