@@ -1,7 +1,7 @@
 /* Null OS installer: the screen you watch while it installs (Calamares
  * slideshow, API 2). A live step list: the running step opens with a
  * shimmering progress bar, finished steps get a check and fold away, Packet
- * hops on every check, and a tips card rotates underneath.
+ * idles in the corner, and a tips card rotates underneath.
  *
  * Steps come from the "nullstage" job module, which runs before each group
  * of real installer jobs and writes globalstorage "nullStage". The bar
@@ -64,7 +64,6 @@ Item {
             current = i;
             steps.setProperty(i, "st", 1);
             stepStart = Date.now();
-            packet.cheer();
         }
         if (s === "apps") {   // Full picked? then this is the long one
             var ops = "";
