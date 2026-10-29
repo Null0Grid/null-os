@@ -1,3 +1,6 @@
+# User programs (Claude Code, pipx)
+[[ -d ~/.local/bin ]] && path=(~/.local/bin $path)
+
 # ~/.zshrc — Null OS default zsh config
 
 setopt autocd interactivecomments magicequalsubst nonomatch notify numericglobsort promptsubst

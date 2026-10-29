@@ -40,20 +40,9 @@ BL=$(dirname "$(find "$WORK/bl" -maxdepth 3 -name index.theme -path '*BeautyLine
 python3 tools/make-icons.py "$BL" "$INC/usr/share/icons/NullLine"
 cp "$WORK/bl/LICENSE"* "$INC/usr/share/icons/NullLine/" 2>/dev/null || true
 
-echo ">> VSCodium apt repo (optional)"
+# VSCodium is part of Full now (null-extras adds its repo on install)
 mkdir -p config/archives
 rm -f config/archives/vscodium.*
-if fetch "$WORK/vscodium.gpg" \
-    https://gitlab.com/paulcarroll/vscodium-deb-rpm-repo/raw/master/pub.gpg \
-    https://gitlab.com/paulcarroll/vscodium-deb-rpm-repo/-/raw/master/pub.gpg; then
-  cp "$WORK/vscodium.gpg" config/archives/vscodium.key.chroot
-  cp "$WORK/vscodium.gpg" config/archives/vscodium.key.binary
-  echo "deb https://download.vscodium.com/debs vscodium main" > config/archives/vscodium.list.chroot
-  cp config/archives/vscodium.list.chroot config/archives/vscodium.list.binary
-else
-  echo "   WARNING: VSCodium repo key unavailable; building without VSCodium"
-  sed -i '/^codium$/d' config/package-lists/desktop.list.chroot 2>/dev/null || true
-fi
 
 # Null Grid apps: newest amd64 .deb from each repo's latest GitHub release
 mkdir -p config/packages.chroot

@@ -17,12 +17,18 @@ export DEBIAN_FRONTEND=noninteractive
 CODENAME=$(. /etc/os-release 2>/dev/null; echo "${VERSION_CODENAME:-trixie}")
 
 # group | title | description | repo | packages | post
-GROUPS_DATA='office|Office|LibreOffice Writer, Calc and Impress||libreoffice-writer libreoffice-calc libreoffice-impress|
+GROUPS_DATA='apps|Desktop apps|VLC (video and music), Gwenview (pictures) and Okular (PDFs)||vlc gwenview okular|
+appstore|Discover + Flathub|The Plasma app store, with Flathub apps||plasma-discover plasma-discover-backend-flatpak flatpak|flathub
+vscodium|VSCodium|VS Code without Microsoft branding or telemetry|vscodium|codium|
+remote|Remote desktop|Remmina with RDP and VNC||remmina remmina-plugin-rdp remmina-plugin-vnc|
+network|Network toolkit|Wireshark, nmap, tcpdump, mtr, iperf3, dig, WireGuard, LLDP, minicom and more|wireshark|wireshark tshark nmap tcpdump traceroute iputils-tracepath mtr-tiny dnsutils whois iperf3 ethtool lldpd bridge-utils wireguard-tools net-tools netcat-openbsd socat arp-scan ipcalc minicom picocom snmp|network
+firewall|Firewall|ufw: blocks incoming connections except SSH, with a page in System Settings||ufw plasma-firewall|firewall
+office|Office|LibreOffice Writer, Calc and Impress||libreoffice-writer libreoffice-calc libreoffice-impress|
 containers|Docker + Podman|Docker Engine, Docker Compose and Podman||docker.io docker-compose podman|docker
 qemu|QEMU/KVM + virt-manager|Virtual machines with the Linux hypervisor and virt-manager||virt-manager qemu-system-x86 qemu-utils libvirt-daemon-system|libvirt
 virtualbox|VirtualBox|Oracle VirtualBox 7.2 (builds its kernel module on install)|virtualbox|linux-headers-amd64 build-essential virtualbox-7.2|vbox
-vscode|VS Code|Microsoft Visual Studio Code (VSCodium stays installed too)|vscode|code|
-claude|Claude|Claude Desktop, the official Linux app from Anthropic|claude|claude-desktop|
+vscode|VS Code|Microsoft Visual Studio Code|vscode|code|
+claude|Claude|Claude Desktop (the official Linux app) and Claude Code (Claude in the terminal)|claude|claude-desktop|claude
 null-play|NULL // PLAY|Gamer Mode: Steam, Heroic, Lutris and installed games, controller-first||gamemode ddcutil bluez|play
 homelab|Homelab tools|Ansible, kubectl and Terraform|kubernetes hashicorp|ansible sshpass kubectl terraform|
 programming|Programming tools|Compilers and runtimes: build tools, Python, Node.js, Go, Rust, Java, GitHub CLI|| build-essential git cmake python3-venv python3-pip pipx nodejs npm golang-go rustc cargo default-jdk gh shellcheck sqlite3 jq|'
@@ -87,6 +93,15 @@ repo() {
       keyfile=/usr/share/keyrings/hashicorp-archive-keyring.asc
       list=/etc/apt/sources.list.d/hashicorp.list
       line="deb [arch=amd64 signed-by=$keyfile] https://apt.releases.hashicorp.com $cn main" ;;
+    vscodium)
+      key=https://gitlab.com/paulcarroll/vscodium-deb-rpm-repo/raw/master/pub.gpg
+      keyfile=/usr/share/keyrings/vscodium-archive-keyring.gpg
+      list=/etc/apt/sources.list.d/vscodium.list
+      line="deb [arch=amd64 signed-by=$keyfile] https://download.vscodium.com/debs vscodium main" ;;
+    wireshark)
+      # Not a repo: let members of the wireshark group capture packets
+      echo "wireshark-common wireshark-common/install-setuid boolean true" | debconf-set-selections 2>/dev/null
+      prep; return 0 ;;
     *) echo "null-extras: unknown repo $name" >&2; return 0 ;;
   esac
   if [ ! -s "$keyfile" ] || [ ! -s "$list" ]; then
@@ -124,6 +139,20 @@ post() {
     libvirt) [ -n "$u" ] && usermod -aG libvirt,kvm "$u"; systemctl enable libvirtd 2>/dev/null ;;
     vbox)    [ -n "$u" ] && usermod -aG vboxusers "$u" ;;
     play)    play ;;
+    flathub) flatpak remote-add --system --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo 2>/dev/null ;;
+    network) [ -n "$u" ] && usermod -aG wireshark "$u"; systemctl enable lldpd 2>/dev/null ;;
+    firewall)
+      systemctl enable null-firewall-setup.service 2>/dev/null
+      # running system (not the installer's chroot): turn it on now
+      if [ -d /run/systemd/system ] && ! systemd-detect-virt -q --chroot 2>/dev/null; then
+        systemctl start null-firewall-setup.service 2>/dev/null
+      fi ;;
+    claude)
+      # Claude Code: Anthropic's installer, per user (~/.local/bin/claude)
+      if [ -n "$u" ] && ! su - "$u" -c 'command -v claude' >/dev/null 2>&1; then
+        timeout 900 su - "$u" -c 'curl -fsSL https://claude.ai/install.sh | bash' \
+          || echo "null-extras: Claude Code didn't install; run: curl -fsSL https://claude.ai/install.sh | bash" >&2
+      fi ;;
   esac
   return 0
 }
@@ -199,7 +228,7 @@ label:
   title: "Minimal or Full"
 groups:
   - name: "Null OS Full"
-    description: "Everything below. Leave unticked for Minimal. Needs internet; a few GB to download. Add any of it later with the Null OS Extras app."
+    description: "Everything below: apps, app store, network toolkit, firewall, dev and homelab tools. Leave unticked for Minimal. Needs internet; a few GB to download. Add any of it later with the Null OS Extras app."
     selected: false
     expanded: true
     critical: false

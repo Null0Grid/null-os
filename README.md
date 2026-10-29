@@ -14,10 +14,10 @@ Every design decision is in **[DESIGN.md](DESIGN.md)**. Screenshots from the lat
 
 - **Desktop:** KDE Plasma 6, Windows-style taskbar, Null Lab color scheme, **NullLine** white line icons (BeautyLine recolored), Silkscreen titles and Inter text.
 - **Startup and shutdown:** a glitchy Plymouth startup and a CRT power-off shutdown. Previews are in `branding/preview/`.
-- **Apps:** Null Grid browser, Null File (file manager), Discover with Flathub, Konsole, VSCodium, VLC, Gwenview, Okular.
+- **Apps (Minimal):** Null Grid browser, Null File (file manager), Konsole, Ark, Spectacle. Everything else is in **Full** (below).
 - **Terminal:** zsh with autosuggestions and syntax highlighting, the two-line prompt, and Null Mono in Konsole.
 - **Network toolkit:** nmap, tcpdump, Wireshark, iperf3, mtr, dnsutils, lldpd, ethtool, nftables, wireguard-tools, arp-scan, ipcalc, snmp, minicom, picocom and Remmina.
-- **System:** Calamares graphical installer, firewall on (incoming blocked except SSH), unattended security upgrades, live persistence for USB.
+- **System:** Calamares graphical installer, unattended security upgrades, live persistence for USB.
 
 Live session login: `user` / `live`, with passwordless sudo. Installed systems use the account you create in the installer.
 
@@ -79,7 +79,7 @@ The mark is defined once, as geometry, in `null-mark.py`. At image build time `p
 
 ## Minimal or Full
 
-Null OS installs Minimal by default. Tick **Null OS Full** on the installer's **Apps** page (or parts of it) to download LibreOffice, Docker + Podman, QEMU/KVM, VirtualBox, VS Code, Claude Desktop, NULL // PLAY, homelab tools (Ansible, kubectl, Terraform) and programming tools during install. Add any of them later with **Null OS Extras** in the start menu, or `null-extras install <group>` (`null-extras list` shows the groups).
+Null OS installs Minimal by default: just the Null OS desktop. Tick **Null OS Full** on the installer's **Apps** page (or parts of it) to download, during install: VLC, Gwenview, Okular, Discover + Flathub, VSCodium, Remmina (RDP/VNC), the network toolkit (Wireshark, nmap...), the ufw firewall, LibreOffice, Docker + Podman, QEMU/KVM, VirtualBox, VS Code, Claude Desktop + Claude Code, NULL // PLAY, homelab tools (Ansible, kubectl, Terraform) and programming tools. Add any of them later with **Null OS Extras** in the start menu, or `null-extras install <group>` (`null-extras list` shows the groups).
 
 ## Gamer Mode (optional)
 

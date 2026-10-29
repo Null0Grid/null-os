@@ -136,8 +136,7 @@ MIME
     echo "WARNING: Null File not installed; no default file manager set" >&2
   fi
 
-  # Flathub in Discover
-  flatpak remote-add --system --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo || true
+  # Flathub and the app store are part of Full (null-extras appstore)
 
   # Calamares: Null OS name on the installer and its launcher
   if [ -f /etc/calamares/branding/debian/branding.desc ]; then
@@ -196,8 +195,7 @@ if [ -d /usr/share/plymouth/themes/null ]; then
   update-initramfs -u -k all || true
 fi
 
-# ---- Firewall: block incoming except SSH (configured on first boot) ----
-systemctl enable null-firewall-setup.service 2>/dev/null || true
+# ---- Firewall: part of Full (null-extras firewall enables this unit) ----
 
 # ---- Services and defaults ----
 systemctl enable ssh chrony lldpd 2>/dev/null || true

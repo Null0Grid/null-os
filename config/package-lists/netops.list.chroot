@@ -1,28 +1,7 @@
 # Network engineering toolkit
 iproute2
 iputils-ping
-iputils-tracepath
-traceroute
-mtr-tiny
-dnsutils
-whois
-nmap
-tcpdump
-tshark
-iperf3
-ethtool
-lldpd
-bridge-utils
 ifupdown
 nftables
-wireguard-tools
-net-tools
-netcat-openbsd
-socat
-arp-scan
-ipcalc
-minicom
-picocom
-snmp
 # Containers / virtualization
 qemu-guest-agent

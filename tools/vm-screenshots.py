@@ -16,7 +16,7 @@ Shots taken:
   05c2-show-in-folder Null File answering "Show in folder" (FileManager1 D-Bus)
   05e-installer-password  cracklib dictionary present, weak-password option on
   05f-extras-app      Null OS Extras checklist
-  05g-extras-homelab  homelab group installed from the internet
+  05g-extras-homelab  homelab, network and firewall groups installed from the internet
   06b-lock-screen     lock screen (Super+L)
   06c-unlocked        unlocked again with the live password
   06-root             root prompt (red frame)
@@ -167,7 +167,7 @@ def main():
         time.sleep(3)
         shot("05b-fastfetch")
         # Simulate installing an app: the shortcut helper should offer it
-        type_text("mkdir -p ~/.local/share/applications; cp /usr/share/applications/vlc.desktop ~/.local/share/applications/demo-app.desktop\n")
+        type_text("mkdir -p ~/.local/share/applications; cp /usr/share/applications/org.kde.konsole.desktop ~/.local/share/applications/demo-app.desktop\n")
         time.sleep(7)
         shot("05c-shortcut-offer")
         # "Show in folder": what browsers and editors ask the file manager
@@ -191,9 +191,10 @@ def main():
         key("esc")
         time.sleep(2)
         type_text("clear; grep -A1 sources-final /etc/calamares/settings.conf; sudo null-extras install homelab "
-                  "> /tmp/x.log 2>&1; tail -n 2 /tmp/x.log; kubectl version --client | head -n 1; "
-                  "terraform -version | head -n 1; ansible --version | head -n 1; null-extras list\n")
-        time.sleep(150)
+                  "> /tmp/x.log 2>&1; sudo null-extras install network firewall >> /tmp/x.log 2>&1; "
+                  "tail -n 1 /tmp/x.log; kubectl version --client | head -n 1; terraform -version | head -n 1; "
+                  "nmap --version | head -n 1; sudo ufw status | head -n 1; null-extras list\n")
+        time.sleep(260)
         shot("05g-extras-homelab")
         type_text("sudo -i\n")
         time.sleep(3)

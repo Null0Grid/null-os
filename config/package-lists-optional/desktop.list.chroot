@@ -21,18 +21,9 @@ kde-config-gtk-style
 breeze
 breeze-gtk-theme
 kio-extras
-plasma-discover
-plasma-discover-backend-flatpak
-flatpak
-plasma-firewall
-ufw
 konsole
 ark
-gwenview
-okular
 kde-spectacle
-vlc
-codium
 calamares
 calamares-settings-debian
 # Dictionary for the installer's password check (a recommend, so not pulled in)
@@ -46,9 +37,5 @@ pipewire-audio
 wireplumber
 xdg-user-dirs
 xdg-utils
-wireshark
-remmina
-remmina-plugin-rdp
-remmina-plugin-vnc
 kdialog
 libnotify-bin
