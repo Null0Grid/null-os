@@ -7,6 +7,7 @@ whole-step scaling, mood only through visor and antenna, a soft cyan glow.
 
   happy-wave  installer finished page (install worked)
   error       installer finished page (install failed)
+  loading     installer slideshow (installing)
 
 Usage: python3 tools/make-packet.py   (writes config/includes.chroot/usr/share/null-os/packet-*.png)
 """
@@ -38,7 +39,10 @@ EYES_ERROR = [(x, y, .5, .5, PINK) for cx in (3.5, 7) for x, y in
 SPARKLES = [(-0.5, 1, .5, .5, CYAN), (0, 0.5, .5, .5, CYAN), (11.5, 1.5, .5, .5, GREEN),
             (12.5, 2.5, .5, .5, CYAN), (11, 3, .5, .5, STEM), (11.5, 4, .5, .5, STEM), (-0.5, 10, .5, .5, PINK), (12, 11, .5, .5, CYAN)]
 
+EYES_LOADING = [(3.75, 4.25, .75, .75, CYAN), (5.6, 4.25, .75, .75, GREEN), (7.5, 4.25, .75, .75, CYAN)]
+
 SPRITES = {
+    "loading": BASE + ARM_DOWN + EYES_LOADING,
     "happy-wave": BASE + ARM_WAVE + EYES_HAPPY + SPARKLES,
     "error": [(x, y, w, h, RED if c == PINK and y < 1 else c) for x, y, w, h, c in BASE]
              + ARM_DOWN + EYES_ERROR + [(11, 0, .5, 1.5, RED), (11, 2, .5, .5, RED)],

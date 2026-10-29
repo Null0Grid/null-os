@@ -1,0 +1,8 @@
+# Null OS: marks where the install is, for the installer slideshow.
+# One instance runs before each group of real jobs (see the build hook).
+---
+type:       "job"
+name:       "nullstage"
+interface:  "python"
+script:     "main.py"
+weight:     1

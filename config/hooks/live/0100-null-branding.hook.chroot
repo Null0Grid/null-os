@@ -234,6 +234,50 @@ BOOT
       sed -i "s/Debian GNU\/Linux/$NULL_NAME/g; s/Debian/$NULL_NAME/g" /etc/calamares/branding/debian/show.qml 2>/dev/null || true
     fi
 
+    # Install screen: live step list (show.qml) fed by nullstage markers that
+    # run before each group of real jobs; Neon Lab sidebar, bigger window,
+    # "Welcome to the Null OS installer"
+    if [ -d /etc/calamares/branding/debian ] && [ -f /usr/share/null-os/calamares/show.qml ]; then
+      cp /usr/share/null-os/calamares/show.qml /usr/share/null-os/packet-loading.png /etc/calamares/branding/debian/
+      python3 - "$SC" <<'PY2'
+import sys
+sc = sys.argv[1]
+lines = open(sc).read().split("\n")
+# stage id -> the first real job of that stage in the exec phase
+marks = [("disk", "partition"), ("copy", "unpackfs"), ("setup", "luksbootkeyfile"),
+         ("boot", "bootloader-config"), ("splash", "plymouthcfg"), ("apps", "packages"),
+         ("done", "umount")]
+out, in_exec = [], False
+for ln in lines:
+    st = ln.strip()
+    if st.startswith("- exec:"):
+        in_exec = True
+    elif st.startswith("- show:"):
+        in_exec = False
+    if in_exec and st.startswith("- "):
+        name = st[2:].strip()
+        for sid, first in marks:
+            if name == first:
+                out.append(ln[:len(ln) - len(ln.lstrip())] + f"- nullstage@{sid}")
+    out.append(ln)
+text = "\n".join(out)
+inst = "instances:\n" + "".join(f"- id: {sid}\n  module: nullstage\n  config: nullstage-{sid}.conf\n" for sid, _ in marks)
+if "instances:" not in text:
+    text = text.replace("sequence:", inst + "\nsequence:", 1)
+open(sc, "w").write(text)
+labels = {"disk": "Preparing the disk", "copy": "Copying Null OS", "setup": "Setting up your system",
+          "boot": "Installing the bootloader", "splash": "Boot splash and drivers", "apps": "Your apps",
+          "done": "Finishing up"}
+for sid, _ in marks:
+    with open(f"/etc/calamares/modules/nullstage-{sid}.conf", "w") as f:
+        f.write(f"stage: {sid}\nlabel: \"{labels[sid]}\"\n")
+PY2
+      BD=/etc/calamares/branding/debian/branding.desc
+      sed -i -E 's/^welcomeStyleCalamares:.*/welcomeStyleCalamares: false/; s/^windowSize:.*/windowSize: 980px,680px/;
+                 s/^( *SidebarBackground:).*/\1    "#0b1118"/; s/^( *SidebarText:).*/\1          "#93a3b8"/;
+                 s/^( *SidebarTextCurrent:).*/\1   "#00e5ff"/; s/^( *SidebarBackgroundCurrent:).*/\1 "#11262f"/' $BD
+    fi
+
     # Last page: Packet waving (or error eyes if the install failed)
     BR=/etc/calamares/branding/debian
     if [ -d $BR ] && [ -f /usr/share/null-os/calamares/finishedq.qml ]; then
