@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Record and edit the Null OS demo video.
 
-  demo-video.py record <iso> <workdir>   boot the ISO in QEMU, grab the guest
+  demo-video.py record <iso> <workdir> [install]
+                                         boot the ISO in QEMU, grab the guest
                                          screen ~8 fps while driving a scripted
                                          tour; writes raw.mkv + scenes.json
   demo-video.py edit <workdir> <out.mp4> cut, speed up, caption and add an
@@ -183,8 +184,10 @@ class Scenes:
             self.cur = None
 
 
-def record(iso, work):
+def record(iso, work, kind="demo"):
     os.makedirs(work, exist_ok=True)
+    with open(os.path.join(work, "kind.txt"), "w") as f:
+        f.write(kind)
     framedir = os.path.abspath(os.path.join(work, "frames"))   # concat lists resolve relative to themselves
     shutil.rmtree(framedir, ignore_errors=True)
     t0 = time.time()
@@ -200,6 +203,11 @@ def record(iso, work):
            "-nic", "user,model=virtio-net-pci"]
     if kvm:
         cmd += ["-enable-kvm", "-cpu", "host"]
+    if kind == "install":
+        disk = os.path.abspath(os.path.join(work, "disk.qcow2"))
+        subprocess.run(["qemu-img", "create", "-q", "-f", "qcow2", disk, "25G"], check=True)
+        cmd = [c if c != "d" else "once=d" for c in cmd]          # CD first, then the installed disk
+        cmd += ["-drive", f"file={disk},if=virtio,format=qcow2"]
     log(f"starting QEMU (kvm={kvm})")
     vm = subprocess.Popen(cmd)
     cap = Capture(framedir, t0)
@@ -209,95 +217,7 @@ def record(iso, work):
                 break
             time.sleep(0.2)
         cap.start()
-
-        time.sleep(4)
-        sc.start("boot-menu", "BOOT MENU", "null os 1.2.0 / live usb")
-        time.sleep(4)
-        key("ret")
-        time.sleep(5)
-        sc.start("startup", "GLITCH STARTUP", "plymouth / built from the null mark", speed=1.8)
-        time.sleep(15)
-        sc.end()
-
-        log("waiting for the desktop")
-        cap.paused = True
-        time.sleep(95)
-        cap.paused = False
-        time.sleep(1)
-        sc.start("desktop", "KDE PLASMA / NEON LAB", "null lab colors / nullline icons")
-        time.sleep(4.5)
-
-        sc.start("start-menu", "START MENU", "the null mark / null grid pinned first")
-        key("meta_l")
-        time.sleep(4)
-        key("esc")
-        time.sleep(1.5)
-        sc.start("browser", "NULL GRID BROWSER", "null search by default", speed=1.8)
-        key("meta_l-3")      # browser: 3rd taskbar pin (settings, files, browser)
-        time.sleep(14)
-        key("esc")          # close the first-run welcome
-        time.sleep(1)
-        key("esc")
-        time.sleep(1)
-        key("ctrl-l")
-        time.sleep(0.6)
-        type_text("search.nullgrid.dev\n")
-        time.sleep(9)
-        sc.end()
-        key("alt-f4")
-        time.sleep(3)
-
-        sc.start("terminal", "TWO-LINE PROMPT", "zsh / null mono", speed=1.9)
-        key("ctrl-alt-t")
-        time.sleep(4)
-        type_text("null-info\n")
-        time.sleep(2)
-        type_text("ip -br addr\n")
-        time.sleep(2)
-        type_text("nope\n")
-        time.sleep(1.5)
-        sc.start("root", "ROOT MODE", "the frame turns red", speed=1.3)
-        type_text("sudo -i\n")
-        time.sleep(3)
-        type_text("exit\n")
-        time.sleep(1)
-        sc.start("fastfetch", "FASTFETCH", "null os 1.2.0 on a debian 13 base", speed=1.2)
-        type_text("clear; fastfetch\n")
-        time.sleep(4)
-        sc.start("shortcuts", "NEW APP? PIN IT", "every install asks: add to desktop", speed=2.6)
-        type_text("clear; mkdir -p ~/.local/share/applications; "
-                  "cp /usr/share/applications/org.kde.konsole.desktop ~/.local/share/applications/demo-app.desktop\n")
-        time.sleep(7)
-        sc.end()
-        key("alt-f4")
-        time.sleep(2)
-
-        sc.start("extras", "MINIMAL OR FULL", "null os extras: add the full package any time", speed=1.2)
-        key("meta_l")
-        time.sleep(2)
-        type_text("extras")
-        time.sleep(2.5)
-        key("ret")
-        time.sleep(7)
-        sc.end()
-        key("esc")
-        time.sleep(2)
-
-        sc.start("files", "NULL FILE", "the null grid file manager", speed=4.0)
-        key("meta_l-2")
-        time.sleep(16)
-        sc.start("files2", "NULL FILE", "grid / list / graph views", speed=1.0)
-        time.sleep(5)
-        sc.end()
-        key("alt-f4")
-        time.sleep(2)
-
-        sc.start("shutdown", "SHUTDOWN", "see you on the grid")
-        key("ctrl-alt-t")
-        time.sleep(3)
-        type_text("sudo poweroff\n")
-        time.sleep(5)
-        sc.end()
+        (tour_install if kind == "install" else tour_demo)(sc, cap, work)
     finally:
         sc.end()
         time.sleep(1)
@@ -333,6 +253,215 @@ def record(iso, work):
     with open(os.path.join(work, "scenes.json"), "w") as f:
         json.dump(sc.items, f, indent=2)
     log(f"recorded {len(sc.items)} scenes -> {os.path.join(work, 'raw.mkv')}")
+
+
+def tour_demo(sc, cap, work):
+
+    time.sleep(4)
+    sc.start("boot-menu", "BOOT MENU", "null os 1.2.0 / live usb")
+    time.sleep(4)
+    key("ret")
+    time.sleep(5)
+    sc.start("startup", "GLITCH STARTUP", "plymouth / built from the null mark", speed=1.8)
+    time.sleep(15)
+    sc.end()
+
+    log("waiting for the desktop")
+    cap.paused = True
+    time.sleep(95)
+    cap.paused = False
+    time.sleep(1)
+    sc.start("desktop", "KDE PLASMA / NEON LAB", "null lab colors / nullline icons")
+    time.sleep(4.5)
+
+    sc.start("start-menu", "START MENU", "the null mark / null grid pinned first")
+    key("meta_l")
+    time.sleep(4)
+    key("esc")
+    time.sleep(1.5)
+    sc.start("browser", "NULL GRID BROWSER", "null search by default", speed=1.8)
+    key("meta_l-3")      # browser: 3rd taskbar pin (settings, files, browser)
+    time.sleep(14)
+    key("esc")          # close the first-run welcome
+    time.sleep(1)
+    key("esc")
+    time.sleep(1)
+    key("ctrl-l")
+    time.sleep(0.6)
+    type_text("search.nullgrid.dev\n")
+    time.sleep(9)
+    sc.end()
+    key("alt-f4")
+    time.sleep(3)
+
+    sc.start("terminal", "TWO-LINE PROMPT", "zsh / null mono", speed=1.9)
+    key("ctrl-alt-t")
+    time.sleep(4)
+    type_text("null-info\n")
+    time.sleep(2)
+    type_text("ip -br addr\n")
+    time.sleep(2)
+    type_text("nope\n")
+    time.sleep(1.5)
+    sc.start("root", "ROOT MODE", "the frame turns red", speed=1.3)
+    type_text("sudo -i\n")
+    time.sleep(3)
+    type_text("exit\n")
+    time.sleep(1)
+    sc.start("fastfetch", "FASTFETCH", "null os 1.2.0 on a debian 13 base", speed=1.2)
+    type_text("clear; fastfetch\n")
+    time.sleep(4)
+    sc.start("shortcuts", "NEW APP? PIN IT", "every install asks: add to desktop", speed=2.6)
+    type_text("clear; mkdir -p ~/.local/share/applications; "
+              "cp /usr/share/applications/org.kde.konsole.desktop ~/.local/share/applications/demo-app.desktop\n")
+    time.sleep(7)
+    sc.end()
+    key("alt-f4")
+    time.sleep(2)
+
+    sc.start("extras", "MINIMAL OR FULL", "null os extras: add the full package any time", speed=1.2)
+    key("meta_l")
+    time.sleep(2)
+    type_text("extras")
+    time.sleep(2.5)
+    key("ret")
+    time.sleep(7)
+    sc.end()
+    key("esc")
+    time.sleep(2)
+
+    sc.start("files", "NULL FILE", "the null grid file manager", speed=4.0)
+    key("meta_l-2")
+    time.sleep(16)
+    sc.start("files2", "NULL FILE", "grid / list / graph views", speed=1.0)
+    time.sleep(5)
+    sc.end()
+    key("alt-f4")
+    time.sleep(2)
+
+    sc.start("shutdown", "SHUTDOWN", "see you on the grid")
+    key("ctrl-alt-t")
+    time.sleep(3)
+    type_text("sudo poweroff\n")
+    time.sleep(5)
+    sc.end()
+
+
+def step(work, name):
+    """Debug still for each installer step (published next to the video)."""
+    d = os.path.join(work, "steps")
+    os.makedirs(d, exist_ok=True)
+    monitor(f"screendump {os.path.join(d, name)}.ppm")
+
+
+def finished_page():
+    """True when most of the screen is the finished page's #0a0e14."""
+    from PIL import Image
+    probe = "/tmp/null-probe.ppm"
+    try:
+        os.remove(probe)
+    except OSError:
+        pass
+    monitor(f"screendump {probe}")
+    time.sleep(1.5)
+    try:
+        im = Image.open(probe).convert("RGB").resize((160, 100))
+    except Exception:
+        return False
+    px = list(im.getdata())
+    dark = sum(1 for r, g, b in px if abs(r - 10) < 8 and abs(g - 14) < 8 and abs(b - 20) < 8)
+    return dark / len(px) > 0.45
+
+
+def tour_install(sc, cap, work):
+    time.sleep(4)
+    sc.start("boot-menu", "BOOT MENU", "null os 1.2.0 / live usb")
+    time.sleep(3)
+    key("ret")
+    time.sleep(5)
+    sc.start("startup", "GLITCH STARTUP", "booting the live usb", speed=1.8)
+    time.sleep(12)
+    sc.end()
+    log("waiting for the live desktop")
+    cap.paused = True
+    time.sleep(95)
+
+    # Off camera: preselect "erase disk" and fill in the names, so the
+    # keyboard-driven run is predictable (people choose these themselves)
+    key("ctrl-alt-t")
+    time.sleep(5)
+    type_text("printf 'efiSystemPartition: /boot/efi\\ninitialPartitioningChoice: erase\\ninitialSwapChoice: small\\n"
+              "defaultFileSystemType: ext4\\n' | sudo tee /etc/calamares/modules/partition.conf; "
+              "printf 'presets:\\n  fullName:\\n    value: Null User\\n    editable: true\\n  loginName:\\n"
+              "    value: null\\n    editable: true\\n' | sudo tee -a /etc/calamares/modules/users.conf; clear\n")
+    time.sleep(3)
+    key("meta_l-d")          # show the desktop for the shot
+    time.sleep(2)
+    cap.paused = False
+    sc.start("desktop", "LIVE DESKTOP", "try it, then install null os", speed=1.0)
+    time.sleep(3)
+    key("meta_l-d")
+    time.sleep(1)
+    type_text("sudo -E calamares > /tmp/calamares.log 2>&1 &\n")
+    sc.start("welcome", "THE INSTALLER", "calamares, in null os colors", speed=1.4)
+    time.sleep(16)
+    step(work, "1-welcome")
+    key("alt-n")
+    sc.start("location", "LOCATION + KEYBOARD", "", speed=1.6)
+    time.sleep(5)
+    step(work, "2-location")
+    key("alt-n")
+    time.sleep(4)
+    step(work, "3-keyboard")
+    key("alt-n")
+    sc.start("partitions", "PARTITIONS", "erase disk, ext4", speed=1.4)
+    time.sleep(6)
+    step(work, "4-partitions")
+    key("alt-n")
+    sc.start("users", "YOUR ACCOUNT", "name, login, password", speed=1.4)
+    time.sleep(4)
+    for _ in range(3):
+        key("tab")
+    type_text("Tr0ub4dor-Lab-77")
+    key("tab")
+    type_text("Tr0ub4dor-Lab-77")
+    time.sleep(2)
+    step(work, "5-users")
+    key("alt-n")
+    sc.start("apps", "MINIMAL OR FULL", "tick null os full for everything; minimal here", speed=1.0)
+    time.sleep(6)
+    step(work, "6-apps")
+    key("alt-n")
+    sc.start("summary", "SUMMARY", "last look before it writes the disk", speed=1.2)
+    time.sleep(5)
+    step(work, "7-summary")
+    key("alt-i")
+    sc.start("install", "INSTALLING", "copying null os to the disk", speed=24)
+    # Wait for the finished page: its background is the Neon Lab #0a0e14
+    for i in range(80):                       # up to ~13 min
+        time.sleep(10)
+        if i % 6 == 0:
+            step(work, f"8-install-{i:02d}")
+        if i >= 6 and finished_page():
+            log(f"finished page after ~{(i + 1) * 10} s")
+            break
+    sc.start("finished", "ALL DONE", "packet says hi", speed=1.0)
+    time.sleep(8)
+    step(work, "9-finished")
+    # Close the installer (Done), then restart from the terminal behind it
+    key("alt-d")
+    time.sleep(3)
+    type_text("sudo reboot\n")
+    sc.start("reboot", "FIRST BOOT", "from the disk", speed=2.5)
+    time.sleep(70)
+    step(work, "10-login")
+    sc.start("login", "LOG IN", "the account you just made", speed=1.2)
+    type_text("Tr0ub4dor-Lab-77\n")
+    time.sleep(20)
+    sc.start("installed", "NULL OS, INSTALLED", "minimal: just the desktop", speed=1.0)
+    time.sleep(6)
+    step(work, "11-desktop")
+    sc.end()
 
 
 # ---------------------------------------------------------------- edit
@@ -384,6 +513,9 @@ def card(path, lines, wallpaper):
 
 def edit(work, out):
     ftitle, fsub = fonts()
+    kind_file = os.path.join(work, "kind.txt")
+    kind = open(kind_file).read().strip() if os.path.exists(kind_file) else "demo"
+    tagline = "installing null os 1.2.0" if kind == "install" else "debian based // neon lab // v1.2.0"
     scenes = json.load(open(os.path.join(work, "scenes.json")))
     raw = os.path.join(work, "raw.mkv")
     # Text-free wallpaper (the login background), so titles don't double up
@@ -414,7 +546,7 @@ def edit(work, out):
     parts.append(f"[1:v]{norm},zoompan=z='min(zoom+0.0007\\,1.08)':d=1:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s={W}x{H}:fps={FPS},"
                  f"drawtext=fontfile='{ftitle}':text='NULL OS':fontsize=72:fontcolor=0xffffff:"
                  f"x=(w-text_w)/2:y=h-200:alpha='if(lt(t\\,0.6)\\,0\\,min(1\\,(t-0.6)/0.6))',"
-                 f"drawtext=fontfile='{fsub}':text='debian based // neon lab // v1.2.0':fontsize=34:fontcolor=0x00e5ff:"
+                 f"drawtext=fontfile='{fsub}':text='{tagline}':fontsize=34:fontcolor=0x00e5ff:"
                  f"x=(w-text_w)/2:y=h-118:alpha='if(lt(t\\,1.1)\\,0\\,min(1\\,(t-1.1)/0.6))',"
                  f"fade=t=in:st=0:d=0.5,fade=t=out:st=2.8:d=0.4[intro]")
     labels.append("[intro]")
@@ -429,8 +561,9 @@ def edit(work, out):
                      f"{caption_filter(s['caption'], s.get('sub', ''), ftitle, fsub)}{lab}")
         labels.append(lab)
 
-    parts.append(f"[2:v]{norm}[crt]")
-    labels.append("[crt]")
+    if kind != "install":               # the install video ends on the installed desktop
+        parts.append(f"[2:v]{norm}[crt]")
+        labels.append("[crt]")
     parts.append(f"[3:v]{norm},fade=t=in:st=0:d=0.6,fade=t=out:st=3.4:d=0.6[outro]")
     labels.append("[outro]")
     parts.append("".join(labels) + f"concat=n={len(labels)}:v=1:a=0[v]")
@@ -450,9 +583,9 @@ def edit(work, out):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) == 4 and sys.argv[1] == "record":
+    if len(sys.argv) in (4, 5) and sys.argv[1] == "record":
         try:
-            record(sys.argv[2], sys.argv[3])
+            record(sys.argv[2], sys.argv[3], sys.argv[4] if len(sys.argv) == 5 else "demo")
         except BaseException as e:
             print(f"::error title=record-failed::{e!r}"[:900], flush=True)
             raise

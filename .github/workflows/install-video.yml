@@ -1,0 +1,72 @@
+name: Record an install video
+
+# Boot an existing Null OS ISO in a VM, record a scripted tour of the real
+# screen, then cut it into a captioned demo (tools/demo-video.py).
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Release whose ISO to install (e.g. 1.2.0)"
+        required: true
+
+jobs:
+  demo:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: ISO from the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release download "${{ inputs.release_tag }}" -R "${{ github.repository }}" -p '*.iso'
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Install QEMU and ffmpeg
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq qemu-system-x86 qemu-utils ffmpeg python3-pil python3-fonttools python3-brotli
+      - name: Fonts (Silkscreen and VT323 from the Null Grid browser)
+        run: |
+          git clone -q --depth 1 https://github.com/Null0Grid/node-grid /tmp/ng
+          mkdir -p demo-fonts
+          python3 -c "
+          from fontTools.ttLib import TTFont
+          for n, o in (('silkscreen', 'Silkscreen-Regular.ttf'), ('vt323', 'VT323-Regular.ttf')):
+              f = TTFont('/tmp/ng/fonts/%s.woff2' % n); f.flavor = None; f.save('demo-fonts/' + o)
+          "
+      - name: Record the tour
+        timeout-minutes: 32
+        run: python3 tools/demo-video.py record *.iso demo-work install
+      - name: Edit
+        if: always() && hashFiles('demo-work/raw.mkv') != ''
+        env:
+          DEMO_FONTS: demo-fonts
+        run: python3 tools/demo-video.py edit demo-work null-os-install.mp4
+      - name: Upload video
+        if: always() && hashFiles('null-os-install.mp4') != ''
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: null-os-install
+          path: |
+            null-os-install.mp4
+            null-os-install-poster.png
+            demo-work/scenes.json
+      - name: Publish to the install-video branch
+        if: always()
+        run: |
+          mkdir -p pub && cp null-os-install.mp4 null-os-install-poster.png pub/ 2>/dev/null; mkdir -p pub/steps && for f in demo-work/steps/*.ppm; do python3 -c "import sys;from PIL import Image;Image.open(sys.argv[1]).save(sys.argv[2])" "$f" "pub/steps/$(basename "${f%.ppm}").png"; done || true
+          cd pub
+          git init -q -b install-video
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          printf '# Null OS install\n\nRecorded from release %s on %s.\n\n![poster](null-os-install-poster.png)\n\n[Watch null-os-install.mp4](null-os-install.mp4)\n' "${{ inputs.release_tag }}" "$(date -u +%F)" > README.md
+          git add -A
+          git commit -q -m "Install video from release ${{ inputs.release_tag }}"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" install-video
