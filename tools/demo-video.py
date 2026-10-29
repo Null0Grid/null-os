@@ -354,23 +354,33 @@ def step(work, name):
     monitor(f"screendump {os.path.join(d, name)}.ppm")
 
 
-def finished_page():
-    """True when most of the screen is the finished page's #0a0e14."""
-    from PIL import Image
-    probe = "/tmp/null-probe.ppm"
+def monitor_query(cmd):
+    """Run a monitor command and return its output."""
+    with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as s:
+        s.settimeout(10)
+        s.connect(MON)
+        buf = b""
+        while b"(qemu)" not in buf:
+            buf += s.recv(65536)
+        s.sendall((cmd + "\n").encode())
+        buf = b""
+        while buf.count(b"(qemu)") < 1:
+            chunk = s.recv(65536)
+            if not chunk:
+                break
+            buf += chunk
+    return buf.decode(errors="replace")
+
+
+def disk_writes():
+    """Bytes the VM has written to its disks so far (None if unknown)."""
+    import re
     try:
-        os.remove(probe)
+        out = monitor_query("info blockstats")
     except OSError:
-        pass
-    monitor(f"screendump {probe}")
-    time.sleep(1.5)
-    try:
-        im = Image.open(probe).convert("RGB").resize((160, 100))
-    except Exception:
-        return False
-    px = list(im.getdata())
-    dark = sum(1 for r, g, b in px if abs(r - 10) < 8 and abs(g - 14) < 8 and abs(b - 20) < 8)
-    return dark / len(px) > 0.45
+        return None
+    vals = [int(v) for v in re.findall(r"wr_bytes=(\d+)", out)]
+    return sum(vals) if vals else None
 
 
 def tour_install(sc, cap, work):
@@ -437,14 +447,23 @@ def tour_install(sc, cap, work):
     step(work, "7-summary")
     key("alt-i")
     sc.start("install", "INSTALLING", "copying null os to the disk", speed=24)
-    # Wait for the finished page: its background is the Neon Lab #0a0e14
-    for i in range(80):                       # up to ~13 min
+    # Wait for the finished page: the installer stops writing to the disk.
+    # (The install screen and the finished page look alike to a pixel check.)
+    last, quiet = None, 0
+    for i in range(110):                      # up to ~18 min
         time.sleep(10)
         if i % 6 == 0:
             step(work, f"8-install-{i:02d}")
-        if i >= 6 and finished_page():
-            log(f"finished page after ~{(i + 1) * 10} s")
+        w = disk_writes()
+        if w is not None and w == last:
+            quiet += 10
+        else:
+            quiet = 0
+        last = w
+        if i >= 18 and quiet >= 60:
+            log(f"disk quiet for {quiet} s after ~{(i + 1) * 10} s: install finished")
             break
+    time.sleep(3)
     sc.start("finished", "ALL DONE", "packet says hi", speed=1.0)
     time.sleep(8)
     step(work, "9-finished")
