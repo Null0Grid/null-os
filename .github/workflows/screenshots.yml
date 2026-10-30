@@ -12,11 +12,15 @@ on:
         description: "Root-shell diagnostics (1 = on)"
         required: false
         default: "0"
+      arch:
+        description: "amd64 or arm64"
+        required: false
+        default: "amd64"
 
 jobs:
   screenshots:
-    runs-on: ubuntu-latest
-    timeout-minutes: 36
+    runs-on: ${{ inputs.arch == 'arm64' && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
+    timeout-minutes: 60
     permissions:
       contents: write
       actions: read
@@ -24,18 +28,19 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
-          name: null-os-iso
+          name: ${{ inputs.arch == 'arm64' && 'null-os-iso-arm64' || 'null-os-iso' }}
           run-id: ${{ inputs.run_id }}
           github-token: ${{ github.token }}
       - name: Enable KVM
+        continue-on-error: true
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
       - name: Install QEMU
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq qemu-system-x86 python3-pil
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ${{ inputs.arch == 'arm64' && 'qemu-system-arm qemu-efi-aarch64' || 'qemu-system-x86' }} python3-pil
       - name: Boot ISO and take screenshots
-        timeout-minutes: 26
+        timeout-minutes: 50
         continue-on-error: true
         env:
           NULL_VM_DEBUG: ${{ inputs.debug }}
@@ -44,11 +49,11 @@ jobs:
         if: always()
         run: |
           cd shots
-          git init -q -b screenshots
+          git init -q -b ${{ inputs.arch == 'arm64' && 'screenshots-arm64' || 'screenshots' }}
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           printf '# Null OS screenshots\n\nISO from build run %s, screenshots %s\n\n' "${{ inputs.run_id }}" "$(date -u +%F)" > README.md
           for f in *.png; do printf '### %s\n![%s](%s)\n\n' "${f%.png}" "$f" "$f" >> README.md; done
           git add -A
           git commit -q -m "Screenshots for run ${{ inputs.run_id }}"
-          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" screenshots
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" ${{ inputs.arch == 'arm64' && 'screenshots-arm64' || 'screenshots' }}
