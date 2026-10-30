@@ -3,9 +3,18 @@
 set -e
 . ./null-os.conf
 
+# arm64 boots through UEFI only (no BIOS/isolinux) and uses Debian's
+# generic arm64 kernel
+case "$ARCH" in
+  arm64) ARCH_OPTS="--bootloaders grub-efi --linux-flavours arm64" ;;
+  *)     ARCH_OPTS="" ;;
+esac
+
+# shellcheck disable=SC2086
 lb config noauto \
   --distribution "$DEBIAN_SUITE" \
   --architectures "$ARCH" \
+  $ARCH_OPTS \
   --archive-areas "main contrib non-free non-free-firmware" \
   --binary-images iso-hybrid \
   --debian-installer none \

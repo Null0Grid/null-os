@@ -3,15 +3,20 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 . ./null-os.conf
+export ARCH
 
 [ "$(id -u)" -eq 0 ] || { echo "Run as root (sudo ./build.sh)"; exit 1; }
 grep -qi debian /etc/os-release || echo "WARNING: not a Debian host; use ./docker-build.sh if this fails."
 
 echo ">> Installing build tools"
 apt-get update -qq
+case "$ARCH" in
+  arm64) BOOT_TOOLS="grub-efi-arm64-bin" ;;
+  *)     BOOT_TOOLS="isolinux syslinux-common grub-efi-amd64-bin grub-pc-bin" ;;
+esac
+# shellcheck disable=SC2086
 DEBIAN_FRONTEND=noninteractive apt-get install -y -qq \
-  live-build debootstrap squashfs-tools xorriso isolinux syslinux-common \
-  grub-efi-amd64-bin grub-pc-bin mtools dosfstools ca-certificates \
+  live-build debootstrap squashfs-tools xorriso $BOOT_TOOLS mtools dosfstools ca-certificates \
   curl git jq python3 python3-fonttools python3-brotli >/dev/null
 
 echo ">> Writing release info from null-os.conf"

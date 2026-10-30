@@ -77,6 +77,10 @@ The mark is defined once, as geometry, in `null-mark.py`. At image build time `p
 - [ ] Null apps (Null Search, Null Notes) as optional packages
 - [ ] Own signed apt repo for Null OS packages
 
+## x64 and ARM64
+
+Two ISOs per release: `-amd64.iso` for normal PCs and `-arm64.iso` for ARM64 machines that boot with UEFI (Apple Silicon Macs in UTM or Parallels, ARM servers and cloud VMs). Build either with `sudo ./build.sh` or `sudo ARCH=arm64 ./build.sh` (on an ARM64 Debian host). The Raspberry Pi needs its own image and isn't covered yet.
+
 ## Minimal or Full
 
 Null OS installs Minimal by default: just the Null OS desktop. Tick **Null OS Full** on the installer's **Apps** page (or parts of it) to download, during install: VLC, Gwenview, Okular, Discover + Flathub, VSCodium, Remmina (RDP/VNC), the network toolkit (Wireshark, nmap...), the ufw firewall, LibreOffice, Docker + Podman, QEMU/KVM, VirtualBox, VS Code, Claude Desktop + Claude Code, NULL // PLAY, homelab tools (Ansible, kubectl, Terraform) and programming tools. Add any of them later with **Null OS Extras** in the start menu, or `null-extras install <group>` (`null-extras list` shows the groups).

@@ -40,6 +40,13 @@ os.makedirs(OUT, exist_ok=True)
 MON = "/tmp/null-qemu-monitor.sock"
 KVM = os.access("/dev/kvm", os.R_OK | os.W_OK)
 SLOW = 1 if KVM else 4  # TCG emulation is much slower
+# ARM64 ISOs boot in an emulated (or KVM) ARM "virt" machine with UEFI
+ARM = os.environ.get("NULL_VM_ARCH") == "arm64" or "arm64" in os.path.basename(sys.argv[1] if len(sys.argv) > 1 else "")
+# Without KVM a full desktop tour takes too long: QUICK = boot, desktop,
+# start menu, terminal, fastfetch, then power off
+QUICK = os.environ.get("NULL_VM_QUICK") == "1" or (ARM and not KVM)
+if ARM and not KVM:
+    SLOW = 6       # an emulated ARM CPU is slower still
 DEBUG = os.environ.get("NULL_VM_DEBUG") == "1"  # extra root-shell diagnostics
 
 # Character -> QEMU sendkey name
@@ -107,14 +114,27 @@ def wait(seconds, why):
 def main():
     if os.path.exists(MON):
         os.remove(MON)
-    cmd = ["qemu-system-x86_64", "-m", "4096", "-smp", "2",
-           "-cdrom", ISO, "-boot", "d",
-           "-vga", "virtio", "-display", "none",
-           "-monitor", f"unix:{MON},server,nowait",
-           "-nic", "user,model=virtio-net-pci"]
-    if KVM:
-        cmd += ["-enable-kvm", "-cpu", "host"]
-    log(f"starting QEMU (kvm={KVM})")
+    if ARM:
+        fw = next((f for f in ("/usr/share/qemu-efi-aarch64/QEMU_EFI.fd", "/usr/share/AAVMF/AAVMF_CODE.fd")
+                   if os.path.exists(f)), None)
+        cmd = ["qemu-system-aarch64", "-M", "virt", "-m", "4096", "-smp", str(os.cpu_count() or 4),
+               "-bios", fw,
+               "-device", "virtio-gpu-pci", "-display", "none",
+               "-device", "qemu-xhci", "-device", "usb-kbd", "-device", "usb-tablet",
+               "-device", "virtio-scsi-pci", "-drive", f"file={ISO},if=none,id=cd,media=cdrom,readonly=on",
+               "-device", "scsi-cd,drive=cd",
+               "-monitor", f"unix:{MON},server,nowait",
+               "-nic", "user,model=virtio-net-pci"]
+        cmd += ["-enable-kvm", "-cpu", "host"] if KVM else ["-cpu", "max", "-accel", "tcg,thread=multi"]
+    else:
+        cmd = ["qemu-system-x86_64", "-m", "4096", "-smp", "2",
+               "-cdrom", ISO, "-boot", "d",
+               "-vga", "virtio", "-display", "none",
+               "-monitor", f"unix:{MON},server,nowait",
+               "-nic", "user,model=virtio-net-pci"]
+        if KVM:
+            cmd += ["-enable-kvm", "-cpu", "host"]
+    log(f"starting QEMU (arm={ARM}, kvm={KVM}, quick={QUICK})")
     vm = subprocess.Popen(cmd)
     try:
         for _ in range(50):
@@ -140,8 +160,27 @@ def main():
         shot("03-desktop")
 
         key("meta_l")
-        time.sleep(4)
+        time.sleep(4 * SLOW)
         shot("04-start-menu")
+        if QUICK:
+            key("esc")
+            time.sleep(2 * SLOW)
+            key("ctrl-alt-t")
+            wait(10, "Konsole")
+            type_text("null-info\n")
+            time.sleep(4 * SLOW)
+            shot("05-terminal")
+            type_text("clear; fastfetch; uname -m\n")
+            time.sleep(6 * SLOW)
+            shot("05b-fastfetch")
+            type_text("clear; null-extras list\n")
+            time.sleep(4 * SLOW)
+            shot("05g-extras-list")
+            type_text("sudo poweroff\n")
+            for n in range(6):
+                time.sleep(2 * SLOW)
+                shot(f"08-shutdown-{n:02d}")
+            return
         key("esc")
         time.sleep(2)
 

@@ -1,5 +1,10 @@
 # Core system
+#if ARCHITECTURES amd64
 linux-image-amd64
+#endif
+#if ARCHITECTURES arm64
+linux-image-arm64
+#endif
 live-boot
 live-config
 live-config-systemd
@@ -52,8 +57,10 @@ firmware-linux-free
 firmware-misc-nonfree
 firmware-realtek
 firmware-iwlwifi
+#if ARCHITECTURES amd64
 amd64-microcode
 intel-microcode
+#endif
 # Shell and fonts (Null OS)
 zsh
 zsh-autosuggestions

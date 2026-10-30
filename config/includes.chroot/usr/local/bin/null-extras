@@ -15,6 +15,7 @@
 set -u
 export DEBIAN_FRONTEND=noninteractive
 CODENAME=$(. /etc/os-release 2>/dev/null; echo "${VERSION_CODENAME:-trixie}")
+DARCH=$(dpkg --print-architecture 2>/dev/null || echo amd64)   # amd64 or arm64
 
 # group | title | description | repo | packages | post
 GROUPS_DATA='apps|Desktop apps|VLC (video and music), Gwenview (pictures) and Okular (PDFs)||vlc gwenview okular|
@@ -36,7 +37,10 @@ programming|Programming tools|Compilers and runtimes: build tools, Python, Node.
 field() { # field <group> <n>
   printf '%s\n' "$GROUPS_DATA" | awk -F'|' -v g="$1" -v n="$2" '$1==g {print $n}'
 }
-group_ids() { printf '%s\n' "$GROUPS_DATA" | cut -d'|' -f1; }
+group_ids() {
+  # VirtualBox has no Linux build for ARM; QEMU/KVM covers VMs there
+  printf '%s\n' "$GROUPS_DATA" | cut -d'|' -f1 | { if [ "$DARCH" = amd64 ]; then cat; else grep -vx virtualbox; fi; }
+}
 
 need_root() {
   if [ "$(id -u)" -ne 0 ]; then exec sudo "$0" "$@"; fi
@@ -65,7 +69,7 @@ repo() {
       key=https://packages.microsoft.com/keys/microsoft.asc
       keyfile=/usr/share/keyrings/null-extras-microsoft.asc
       list=/etc/apt/sources.list.d/vscode.list
-      line="deb [arch=amd64 signed-by=$keyfile] https://packages.microsoft.com/repos/code stable main"
+      line="deb [arch=$DARCH signed-by=$keyfile] https://packages.microsoft.com/repos/code stable main"
       # code's own install script would add a second, conflicting copy
       echo "code code/add-microsoft-repo boolean false" | debconf-set-selections 2>/dev/null ;;
     claude)
@@ -92,12 +96,12 @@ repo() {
       key=https://apt.releases.hashicorp.com/gpg
       keyfile=/usr/share/keyrings/hashicorp-archive-keyring.asc
       list=/etc/apt/sources.list.d/hashicorp.list
-      line="deb [arch=amd64 signed-by=$keyfile] https://apt.releases.hashicorp.com $cn main" ;;
+      line="deb [arch=$DARCH signed-by=$keyfile] https://apt.releases.hashicorp.com $cn main" ;;
     vscodium)
       key=https://gitlab.com/paulcarroll/vscodium-deb-rpm-repo/raw/master/pub.gpg
       keyfile=/usr/share/keyrings/vscodium-archive-keyring.gpg
       list=/etc/apt/sources.list.d/vscodium.list
-      line="deb [arch=amd64 signed-by=$keyfile] https://download.vscodium.com/debs vscodium main" ;;
+      line="deb [arch=$DARCH signed-by=$keyfile] https://download.vscodium.com/debs vscodium main" ;;
     wireshark)
       # Not a repo: let members of the wireshark group capture packets
       echo "wireshark-common wireshark-common/install-setuid boolean true" | debconf-set-selections 2>/dev/null
@@ -122,7 +126,7 @@ play() {
   dpkg -s null-play >/dev/null 2>&1 && return 0
   local url tmp
   url=$(curl -fsSL --max-time 30 https://api.github.com/repos/Null0Grid/null-play/releases/latest 2>/dev/null \
-        | grep -o '"browser_download_url": *"[^"]*\(amd64\|x86_64\)[^"]*\.deb"' | head -1 | cut -d'"' -f4)
+        | grep -o '"browser_download_url": *"[^"]*\('"$DARCH"'\|'"$( [ "$DARCH" = arm64 ] && echo aarch64 || echo x86_64 )"'\)[^"]*\.deb"' | head -1 | cut -d'"' -f4)
   if [ -z "$url" ]; then echo "null-extras: no NULL // PLAY release found" >&2; return 0; fi
   tmp=$(mktemp -d)
   if curl -fL --max-time 600 "$url" -o "$tmp/null-play.deb"; then

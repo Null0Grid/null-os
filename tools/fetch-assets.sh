@@ -44,18 +44,24 @@ cp "$WORK/bl/LICENSE"* "$INC/usr/share/icons/NullLine/" 2>/dev/null || true
 mkdir -p config/archives
 rm -f config/archives/vscodium.*
 
-# Null Grid apps: newest amd64 .deb from each repo's latest GitHub release
+# Null Grid apps: newest .deb for this architecture from each repo's latest
+# GitHub release
+ARCH=${ARCH:-amd64}
+case "$ARCH" in
+  arm64) ARCH_RE='(arm64|aarch64)' ;;
+  *)     ARCH_RE='(amd64|x86_64)' ;;
+esac
 mkdir -p config/packages.chroot
 rm -f config/packages.chroot/*.deb
 for repo in node-grid null-file; do
   echo ">> Null Grid app $repo: latest release .deb (optional)"
   if fetch "$WORK/rel-$repo.json" "https://api.github.com/repos/Null0Grid/$repo/releases/latest"; then
-    URL=$(jq -r '.assets[] | select(.name | test("(amd64|x86_64).*\\.deb$")) | .browser_download_url' "$WORK/rel-$repo.json" | head -1)
+    URL=$(jq -r --arg re "$ARCH_RE" '.assets[] | select(.name | test($re + ".*\\.deb$")) | .browser_download_url' "$WORK/rel-$repo.json" | head -1)
     NAME=$(basename "$URL" | tr ' ' '_')
     if [ -n "$URL" ] && fetch "config/packages.chroot/$NAME" "$URL"; then
       echo "   $NAME"
     else
-      echo "   WARNING: no amd64 .deb in the latest $repo release; building without it"
+      echo "   WARNING: no $ARCH .deb in the latest $repo release; building without it"
     fi
   else
     echo "   WARNING: GitHub API unavailable; building without $repo"

@@ -207,7 +207,7 @@ if [ "$(mount | grep "$CHROOT " | cut -c -16)" = "/dev/mapper/luks" ]; then
 fi
 echo "Running bootloader-config (Null OS)..."
 if [ -d /sys/firmware/efi/efivars ]; then
-    DEBIAN_FRONTEND=noninteractive chroot "$CHROOT" apt-get -y install grub-efi-amd64 || true
+    DEBIAN_FRONTEND=noninteractive chroot "$CHROOT" apt-get -y install "grub-efi-$(chroot "$CHROOT" dpkg --print-architecture)" || true
 fi
 [ -f "$CHROOT/etc/default/grub" ] && sed -i "s/#GRUB_DISABLE_OS_PROBER=false/GRUB_DISABLE_OS_PROBER=false/" "$CHROOT/etc/default/grub"
 chroot "$CHROOT" /usr/sbin/update-grub || true

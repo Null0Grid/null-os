@@ -44,6 +44,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ inputs.release_tag }}
+          ARCH: amd64
         run: |
           set -euo pipefail
           apt-get install -y -qq gh >/dev/null
@@ -54,8 +55,11 @@ jobs:
           if [ "$(stat -c %s "$ISO")" -ge 2147483648 ]; then
             echo "::error::$ISO is over 2 GiB, too big for a release file"; exit 1
           fi
+          # Replace only this architecture's ISO and checksum (the other
+          # architecture and the source listing stay)
           for a in $(gh release view "$TAG" -R "$R" --json assets --jq '.assets[].name'); do
-            gh release delete-asset "$TAG" "$a" -R "$R" -y
+            case "$a" in "$ISO"|"$ISO.sha256"|nullos-*-"$ARCH".iso|nullos-*-"$ARCH".iso.sha256)
+              gh release delete-asset "$TAG" "$a" -R "$R" -y ;; esac
           done
           gh release upload "$TAG" "$ISO" "$ISO.sha256" -R "$R" --clobber
           NOTES="docs/release-notes-$TAG.md"
@@ -109,7 +113,7 @@ jobs:
         if: inputs.release_tag != ''
         env:
           GH_TOKEN: ${{ github.token }}
-        run: ls *.iso 2>/dev/null || gh release download "${{ inputs.release_tag }}" -R "${{ github.repository }}" -p '*.iso'
+        run: ls *.iso 2>/dev/null || gh release download "${{ inputs.release_tag }}" -R "${{ github.repository }}" -p '*-amd64.iso'
       - name: Enable KVM
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm.rules
@@ -140,6 +144,139 @@ jobs:
           git commit -q -m "Screenshots from ${GITHUB_SHA::7}"
           git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" screenshots
 
+
+  build-arm64:
+    # GitHub's free ARM64 runners (public repos); builds natively
+    runs-on: ubuntu-24.04-arm
+    permissions:
+      contents: write
+    container:
+      image: debian:trixie
+      options: --privileged
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build ISO
+        shell: bash
+        run: |
+          set -o pipefail
+          ARCH=arm64 ./build.sh 2>&1 | tee build-full.log
+      - name: Upload ISO
+        # Each ISO is ~2 GB of Actions storage, so keep it only briefly; a
+        # full quota must not fail the build (the release copy is the keeper)
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: null-os-iso-arm64
+          path: |
+            *.iso
+            *.sha256
+          retention-days: 2
+          compression-level: 0
+      - name: Put the ISO on the release
+        if: inputs.release_tag != ''
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.release_tag }}
+          ARCH: arm64
+        run: |
+          set -euo pipefail
+          apt-get install -y -qq gh >/dev/null
+          git config --global --add safe.directory "$PWD"
+          R="${{ github.repository }}"
+          ISO=$(ls *.iso | head -1)
+          [ -f "$ISO.sha256" ] || sha256sum "$ISO" > "$ISO.sha256"
+          if [ "$(stat -c %s "$ISO")" -ge 2147483648 ]; then
+            echo "::error::$ISO is over 2 GiB, too big for a release file"; exit 1
+          fi
+          # Replace only this architecture's ISO and checksum (the other
+          # architecture and the source listing stay)
+          for a in $(gh release view "$TAG" -R "$R" --json assets --jq '.assets[].name'); do
+            case "$a" in "$ISO"|"$ISO.sha256"|nullos-*-"$ARCH".iso|nullos-*-"$ARCH".iso.sha256)
+              gh release delete-asset "$TAG" "$a" -R "$R" -y ;; esac
+          done
+          gh release upload "$TAG" "$ISO" "$ISO.sha256" -R "$R" --clobber
+          NOTES="docs/release-notes-$TAG.md"
+          if [ -f "$NOTES" ]; then
+            gh release edit "$TAG" -R "$R" --title "Null OS $TAG" --notes-file "$NOTES"
+          else
+            gh release edit "$TAG" -R "$R" --title "Null OS $TAG"
+          fi
+          echo "::notice::$ISO is on release $TAG"
+      - name: Upload build log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log-arm64
+          path: build.log
+      - name: Publish build log to the build-logs branch
+        if: failure()
+        shell: bash
+        run: |
+          set +e
+          mkdir -p /tmp/logs
+          cp build.log build-full.log /tmp/logs/ 2>/dev/null
+          [ -f build.log ] || cp build-full.log build.log
+          grep -nE '^(E:|P: Begin|ERROR)|Unable to locate|no installation candidate|Traceback|[Ee]rror' build.log | tail -80 > /tmp/logs/errors.txt
+          tail -300 build.log > /tmp/logs/tail.txt
+          # Annotations are readable through the API even when log downloads aren't
+          tail -6 build-full.log | while IFS= read -r line; do echo "::error title=build-output::${line:0:900}"; done
+          tail -6 /tmp/logs/errors.txt | while IFS= read -r line; do echo "::error title=build-error::${line:0:900}"; done
+          tail -4 /tmp/logs/tail.txt | while IFS= read -r line; do echo "::warning title=build-tail::${line:0:900}"; done
+          apt-get install -y -qq git >/dev/null 2>&1 || (apt-get update -qq && apt-get install -y -qq git >/dev/null)
+          cd /tmp/logs
+          git init -q -b build-logs-arm64
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A && git commit -q -m "Build log from ${GITHUB_SHA::7}"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" build-logs-arm64
+
+  screenshots-arm64:
+    needs: build-arm64
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 60
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: null-os-iso-arm64
+      - name: ISO from the release (when there's no artifact)
+        if: inputs.release_tag != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: ls *.iso 2>/dev/null || gh release download "${{ inputs.release_tag }}" -R "${{ github.repository }}" -p '*-arm64.iso'
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Install QEMU
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq qemu-system-arm qemu-efi-aarch64 python3-pil
+      - name: Boot ISO and take screenshots
+        timeout-minutes: 50
+        continue-on-error: true
+        run: python3 tools/vm-screenshots.py *.iso shots
+      - name: Upload screenshots
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshots-arm64
+          path: shots/*.png
+      - name: Publish screenshots to the screenshots branch
+        if: always()
+        run: |
+          cd shots
+          git init -q -b screenshots-arm64
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          printf '# Null OS screenshots (ARM64)\n\nFrom build %s (%s)\n\n' "${GITHUB_SHA::7}" "$(date -u +%F)" > README.md
+          for f in *.png; do printf '### %s\n![%s](%s)\n\n' "${f%.png}" "$f" "$f" >> README.md; done
+          git add -A
+          git commit -q -m "Screenshots from ${GITHUB_SHA::7}"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" screenshots-arm64
   release:
     if: startsWith(github.ref, 'refs/tags/v')
     needs: build

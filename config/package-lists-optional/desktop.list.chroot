@@ -31,8 +31,13 @@ calamares-settings-debian
 # encrypted installs
 squashfs-tools
 grub2-common
+#if ARCHITECTURES amd64
 grub-pc-bin
 grub-efi-amd64-bin
+#endif
+#if ARCHITECTURES arm64
+grub-efi-arm64-bin
+#endif
 efibootmgr
 cryptsetup-initramfs
 # Dictionary for the installer's password check (a recommend, so not pulled in)
