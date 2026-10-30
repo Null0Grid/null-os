@@ -22,6 +22,10 @@ on:
         description: "Only (re)upload the source-code listing, leave the ISO alone"
         type: boolean
         default: false
+      arch:
+        description: "Which ISO: amd64 or arm64 (each only replaces its own files)"
+        required: false
+        default: "amd64"
 
 permissions:
   contents: write
@@ -37,13 +41,14 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
-          name: null-os-iso
+          name: ${{ inputs.arch == 'arm64' && 'null-os-iso-arm64' || 'null-os-iso' }}
           run-id: ${{ inputs.run_id }}
           github-token: ${{ github.token }}
           path: iso
       - name: Source-code listing (GPL)
         # Which Debian source package and version built each binary on the
         # ISO, plus where to get them; uploaded next to the ISO
+        if: inputs.arch != 'arm64'
         continue-on-error: true
         shell: bash
         run: |
@@ -111,8 +116,14 @@ jobs:
           # commits that touch workflows), so the release is made by hand in
           # the GitHub UI. If it exists, swap its files and notes.
           if gh release view "$TAG" -R "$R" >/dev/null 2>&1; then
+            # Replace only what this run uploads (the other architecture's
+            # ISO stays); the x64 run also owns the source listing
+            ARCH="${{ inputs.arch }}"
             for a in $(gh release view "$TAG" -R "$R" --json assets --jq '.assets[].name'); do
-              gh release delete-asset "$TAG" "$a" -R "$R" -y
+              case "$a" in
+                *-"$ARCH".iso|*-"$ARCH".iso.sha256|*-"$ARCH".iso.part*) gh release delete-asset "$TAG" "$a" -R "$R" -y ;;
+                *SOURCES.md|*sources.tsv) [ "$ARCH" = amd64 ] && gh release delete-asset "$TAG" "$a" -R "$R" -y ;;
+              esac
             done
             gh release edit "$TAG" -R "$R" --title "Null OS ${TAG#v}" --notes-file notes.md
             gh release upload "$TAG" iso/* -R "$R" --clobber

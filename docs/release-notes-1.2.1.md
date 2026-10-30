@@ -2,6 +2,10 @@
 
 Use this instead of 1.2.0: on 1.2.0 and earlier, installing to a disk failed at the copy step ("Failed to find unsquashfs"). Trying Null OS live from the USB was fine.
 
+## Two ISOs
+- `nullos-1.2.1-trixie-amd64.iso`: normal PCs (x64), BIOS or UEFI.
+- `nullos-1.2.1-trixie-arm64.iso`: ARM64 machines that boot with UEFI, such as Apple Silicon Macs in UTM or Parallels, and ARM servers or cloud VMs. Same system and apps; VirtualBox isn't offered on ARM64 (no Linux ARM build), use QEMU/KVM. Raspberry Pi isn't supported yet.
+
 ## Fixed
 - **Installing to a disk.** The installer now has the tools it needs: squashfs-tools (copies the system) and GRUB for BIOS and UEFI (Debian's installer fetches GRUB from a package pool on Debian's own ISO, which Null OS doesn't have). Encrypted installs get their initramfs support too. Tested end to end in a VM: install, reboot, log in.
 - Installed systems boot with the Null OS splash and show "Null OS" in the boot menu.
