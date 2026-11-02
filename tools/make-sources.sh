@@ -60,7 +60,7 @@ other=$(tail -n +2 "$TSV" | awk -F'\t' '$3=="-"{print $1" "$2}')
     echo
     printf '%s\n' "$other" | sed 's/^/- /'
     echo
-    echo "(Null Grid browser: https://github.com/Null0Grid/node-grid · Null File: https://github.com/Null0Grid/null-file)"
+    echo "(Null Grid browser: https://github.com/Null0Grid/null-grid · Null File: https://github.com/Null0Grid/null-file)"
     echo
   fi
   echo "## Written offer"

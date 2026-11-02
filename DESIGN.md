@@ -49,7 +49,7 @@ A ring crossed by two parallel slashes (echoes the Null Grid `//` family mark).
 
 | Role | App |
 |---|---|
-| Web browser | **Null Grid** (NODE_GRID), latest `.deb` from Null0Grid/node-grid releases; Null Search default |
+| Web browser | **Null Grid**, latest `.deb` from Null0Grid/null-grid releases; Null Search default |
 | App store | **Discover** with Flathub enabled |
 | File manager | **Null File** (Null Grid app, Tauri), latest `.deb` from Null0Grid/null-file releases; default for folders; updates through its signed apt repo |
 | Gamer Mode | **NULL // PLAY**, not on the ISO; part of **Full** (latest .deb from Null0Grid/null-play releases). Its package brings its own entry points |

@@ -22,7 +22,7 @@ fetch() {
 echo ">> Fonts: Silkscreen and VT323 (the Null Grid browser's own files, OFL)"
 FONTS=$INC/usr/share/fonts/truetype/null-os-ui
 mkdir -p "$FONTS"
-git clone -q --depth 1 https://github.com/Null0Grid/node-grid "$WORK/ng"
+git clone -q --depth 1 https://github.com/Null0Grid/null-grid "$WORK/ng"
 python3 - "$WORK/ng/fonts" "$FONTS" <<'PY'
 import sys, os
 from fontTools.ttLib import TTFont
@@ -53,7 +53,7 @@ case "$ARCH" in
 esac
 mkdir -p config/packages.chroot
 rm -f config/packages.chroot/*.deb
-for repo in node-grid null-file; do
+for repo in null-grid null-file; do
   echo ">> Null Grid app $repo: latest release .deb (optional)"
   if fetch "$WORK/rel-$repo.json" "https://api.github.com/repos/Null0Grid/$repo/releases/latest"; then
     URL=$(jq -r --arg re "$ARCH_RE" '.assets[] | select(.name | test($re + ".*\\.deb$")) | .browser_download_url' "$WORK/rel-$repo.json" | head -1)
