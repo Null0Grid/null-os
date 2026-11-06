@@ -22,13 +22,17 @@ jobs:
         shell: bash
         run: |
           set -e
+          sed -i -E 's/^Components:.*/Components: main contrib non-free non-free-firmware/' /etc/apt/sources.list.d/debian.sources
           apt-get update -qq
+          missing=""
+          for p in ${{ inputs.package }}; do apt-cache show "$p" >/dev/null 2>&1 || missing="$missing $p"; done
+          echo "::notice title=missing::${missing:- (none)}"
           for p in ${{ inputs.package }}; do
             f=$(apt-cache show "$p" 2>/dev/null | awk '/^Package:/{n++} n==1' | grep -E '^(Depends|Pre-Depends|Recommends|Suggests):' | sed 's/%/%25/g' | awk '{printf "%s%%0A", $0}')
             echo "::notice title=control $p::$f"
           done
           set -- ${{ inputs.package }}
-          cd /tmp && apt-get download -qq "$1"
+          cd /tmp && apt-get download -qq "$1" || { echo "::notice::no download of $1"; exit 0; }
           dpkg-deb -x *.deb pkg
           echo "::notice::files: $(cd pkg && find . -type f | grep -E 'calamares|\.conf$' | tr '\n' ' ' | head -c 3500)"
           cd pkg
