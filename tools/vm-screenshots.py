@@ -19,7 +19,7 @@ Shots taken:
   05f2-extras-installing  the app installing Homelab, Network, Firewall
   05f3-extras-done    the app's summary
   05g-extras-homelab  homelab, network and firewall groups installed from the internet
-  05h-extras-tyler    Tyler field build (privacy + OSINT + SDR/radio + hardware) installed
+  05h-extras-beta     Beta Tester group installs by name and stays off the list
   06b-lock-screen     lock screen (Super+L)
   06c-unlocked        unlocked again with the live password
   06-root             root prompt (red frame)
@@ -257,12 +257,13 @@ def main():
                   "terraform -version | head -n 1; nmap --version | head -n 1; sudo ufw status | head -n 1; null-extras list\n")
         time.sleep(8)
         shot("05g-extras-homelab")
-        # Tyler: the field build (privacy + OSINT + SDR/radio + hardware bench) in one group
-        type_text("clear; sudo null-extras install tyler > /tmp/ty.log 2>&1; tail -n 1 /tmp/ty.log; "
-                  "command -v torbrowser-launcher proxychains4 recon-ng meshtastic rtl_test gqrx chirp sigrok-cli openocd gpsd nfc-list binwalk | wc -l; "
-                  "id | tr ',' '\\n' | grep -E 'debian-tor|dialout|plugdev'; null-extras list | grep -E 'null-play|tyler'\n")
+        # Off-the-books group: install by name, verify only a pass/fail count.
+        # No name or package list on screen, and it must stay out of `list`.
+        type_text("clear; sudo null-extras install tyler >/tmp/b.log 2>&1 && echo 'beta: install OK' || echo 'beta: install FAILED'; "
+                  "id | tr ',' '\\n' | grep -Ec 'debian-tor|dialout|plugdev'; "
+                  "null-extras list | grep -c tyler   # expect 0: off the books\n")
         time.sleep(300)
-        shot("05h-extras-tyler")
+        shot("05h-extras-beta")
         type_text("sudo -i\n")
         time.sleep(3)
         shot("06-root")

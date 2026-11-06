@@ -31,7 +31,7 @@ virtualbox|VirtualBox|Oracle VirtualBox 7.2 (builds its kernel module on install
 vscode|VS Code|Microsoft Visual Studio Code|vscode|code|
 claude|Claude|Claude Desktop (the official Linux app) and Claude Code (Claude in the terminal)|claude|claude-desktop|claude
 null-play|NULL // PLAY|Gamer Mode: Steam, Heroic, Lutris and installed games, controller-first||gamemode ddcutil bluez|play
-tyler|Tyler|Field build in one pick: stay hidden + OSINT (Tor, proxychains, recon-ng, Sherlock), comms + SDR (Meshtastic, GQRX, GNU Radio, HackRF, ADS-B, ham radio), and a hardware bench (flashing, GPS, RFID/NFC, logic analyzer, CAN bus)|contrib|torbrowser-launcher tor torsocks proxychains4 nyx obfs4proxy macchanger firejail mat2 bleachbit onionshare-cli recon-ng sherlock dnsrecon dnsenum fierce sublist3r dnstwist whatweb wafw00f libimage-exiftool-perl httpie whois python3-meshtastic esptool python3-serial minicom picocom rtl-sdr gqrx-sdr gnuradio gr-osmosdr soapysdr-tools cubicsdr inspectrum hackrf rtl-433 dump1090-mutability multimon-ng chirp direwolf fldigi js8call wsjtx gpredict ubertooth bluez-tools aircrack-ng sigrok-cli pulseview openocd avrdude flashrom dfu-util stlink-tools arduino kicad fritzing gpsd gpsd-clients viking libnfc-bin mfoc mfcuk binwalk tio cutecom gtkterm socat screen can-utils|tyler
+tyler|Beta Tester|Early-access tools for beta testers — experimental, may change without notice|contrib|torbrowser-launcher tor torsocks proxychains4 nyx obfs4proxy macchanger firejail mat2 bleachbit onionshare-cli recon-ng sherlock dnsrecon dnsenum fierce sublist3r dnstwist whatweb wafw00f libimage-exiftool-perl httpie whois python3-meshtastic esptool python3-serial minicom picocom rtl-sdr gqrx-sdr gnuradio gr-osmosdr soapysdr-tools cubicsdr inspectrum hackrf rtl-433 dump1090-mutability multimon-ng chirp direwolf fldigi js8call wsjtx gpredict ubertooth bluez-tools aircrack-ng sigrok-cli pulseview openocd avrdude flashrom dfu-util stlink-tools arduino kicad fritzing gpsd gpsd-clients viking libnfc-bin mfoc mfcuk binwalk tio cutecom gtkterm socat screen can-utils|tyler
 homelab|Homelab tools|Ansible, kubectl and Terraform|kubernetes hashicorp|ansible sshpass kubectl terraform|
 programming|Programming tools|Compilers and runtimes: build tools, Python, Node.js, Go, Rust, Java, GitHub CLI|| build-essential git cmake python3-venv python3-pip pipx nodejs npm golang-go rustc cargo default-jdk gh shellcheck sqlite3 jq|'
 
@@ -40,7 +40,11 @@ field() { # field <group> <n>
 }
 group_ids() {
   # VirtualBox has no Linux build for ARM; QEMU/KVM covers VMs there
-  printf '%s\n' "$GROUPS_DATA" | cut -d'|' -f1 | { if [ "$DARCH" = amd64 ]; then cat; else grep -vx virtualbox; fi; }
+  # tyler is off the books: only the Extras app ("group_ids all") sees it;
+  # Full, the installer Apps page and the plain list leave it out
+  printf '%s\n' "$GROUPS_DATA" | cut -d'|' -f1 \
+    | { if [ "$DARCH" = amd64 ]; then cat; else grep -vx virtualbox; fi; } \
+    | { if [ "${1:-}" = all ]; then cat; else grep -vx tyler; fi; }
 }
 
 need_root() {
@@ -226,7 +230,7 @@ install_groups() {
 list_groups() {
   local g
   if [ "${1:-}" = --tsv ]; then   # for the Extras app: id, title, description, installed
-    for g in $(group_ids); do
+    for g in $(group_ids all); do
       if installed "$g"; then s=1; else s=0; fi
       printf '%s\t%s\t%s\t%s\n' "$g" "$(field "$g" 2)" "$(field "$g" 3)" "$s"
     done

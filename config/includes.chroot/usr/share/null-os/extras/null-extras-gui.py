@@ -33,7 +33,7 @@ ICONS = {
     "vscode": ["vscode", "com.visualstudio.code", "applications-development"],
     "claude": ["claude-desktop", "claude", "im-user", "dialog-messages"],
     "null-play": ["null-play", "applications-games", "input-gaming"],
-    "tyler": ["security-high", "network-wireless", "applications-engineering"],
+    "tyler": ["applications-science", "emblem-new", "preferences-other"],
     "homelab": ["network-server", "server-database", "applications-system"],
     "programming": ["utilities-terminal", "text-x-script", "applications-development"],
 }
