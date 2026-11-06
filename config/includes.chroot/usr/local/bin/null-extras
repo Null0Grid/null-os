@@ -31,6 +31,7 @@ virtualbox|VirtualBox|Oracle VirtualBox 7.2 (builds its kernel module on install
 vscode|VS Code|Microsoft Visual Studio Code|vscode|code|
 claude|Claude|Claude Desktop (the official Linux app) and Claude Code (Claude in the terminal)|claude|claude-desktop|claude
 null-play|NULL // PLAY|Gamer Mode: Steam, Heroic, Lutris and installed games, controller-first||gamemode ddcutil bluez|play
+tyler|Tyler|Field build in one pick: stay hidden + OSINT (Tor, proxychains, recon-ng, Sherlock), comms + SDR (Meshtastic, GQRX, GNU Radio, HackRF, ADS-B, ham radio), and a hardware bench (flashing, GPS, RFID/NFC, logic analyzer, CAN bus)|contrib|torbrowser-launcher tor torsocks proxychains4 nyx obfs4proxy macchanger firejail mat2 bleachbit onionshare-cli recon-ng sherlock dnsrecon dnsenum fierce sublist3r dnstwist whatweb wafw00f libimage-exiftool-perl httpie whois python3-meshtastic esptool python3-serial minicom picocom rtl-sdr gqrx-sdr gnuradio gr-osmosdr soapysdr-tools cubicsdr inspectrum hackrf rtl-433 dump1090-mutability multimon-ng chirp direwolf fldigi js8call wsjtx gpredict ubertooth bluez-tools aircrack-ng sigrok-cli pulseview openocd avrdude flashrom dfu-util stlink-tools arduino kicad fritzing gpsd gpsd-clients viking libnfc-bin mfoc mfcuk binwalk tio cutecom gtkterm socat screen can-utils|tyler
 homelab|Homelab tools|Ansible, kubectl and Terraform|kubernetes hashicorp|ansible sshpass kubectl terraform|
 programming|Programming tools|Compilers and runtimes: build tools, Python, Node.js, Go, Rust, Java, GitHub CLI|| build-essential git cmake python3-venv python3-pip pipx nodejs npm golang-go rustc cargo default-jdk gh shellcheck sqlite3 jq|'
 
@@ -106,6 +107,21 @@ repo() {
       # Not a repo: let members of the wireshark group capture packets
       echo "wireshark-common wireshark-common/install-setuid boolean true" | debconf-set-selections 2>/dev/null
       prep; return 0 ;;
+    contrib)
+      # Tor Browser's launcher is in Debian's contrib section. Not a new repo:
+      # turn contrib on in the Debian sources. Also answer macchanger's
+      # install question: don't change the MAC on every connection by default.
+      echo "macchanger macchanger/automatically_run boolean false" | debconf-set-selections 2>/dev/null
+      for f in /etc/apt/sources.list /etc/apt/sources.list.d/*.sources /etc/apt/sources.list.d/*.list; do
+        [ -f "$f" ] || continue
+        if [ "${f##*.}" = sources ]; then
+          grep -q '^Components:.*\bcontrib\b' "$f" || sed -i -E '/debian/ s/^(Components: *main)/\1 contrib/' "$f"
+        else
+          sed -i -E '/^deb(-src)? .*debian/ { / contrib( |$)/! s/ main( |$)/ main contrib\1/ }' "$f"
+        fi
+      done
+      rm -f /run/null-extras-updated
+      prep; return 0 ;;
     *) echo "null-extras: unknown repo $name" >&2; return 0 ;;
   esac
   if [ ! -s "$keyfile" ] || [ ! -s "$list" ]; then
@@ -143,6 +159,7 @@ post() {
     libvirt) [ -n "$u" ] && usermod -aG libvirt,kvm "$u"; systemctl enable libvirtd 2>/dev/null ;;
     vbox)    [ -n "$u" ] && usermod -aG vboxusers "$u" ;;
     play)    play ;;
+    tyler) [ -n "$u" ] && usermod -aG debian-tor,dialout,plugdev "$u" ;;   # Tor, plus serial radios, SDR, GPS and programmers
     flathub) flatpak remote-add --system --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo 2>/dev/null ;;
     network) [ -n "$u" ] && usermod -aG wireshark "$u"; systemctl enable lldpd 2>/dev/null ;;
     firewall)

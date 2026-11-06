@@ -33,6 +33,7 @@ ICONS = {
     "vscode": ["vscode", "com.visualstudio.code", "applications-development"],
     "claude": ["claude-desktop", "claude", "im-user", "dialog-messages"],
     "null-play": ["null-play", "applications-games", "input-gaming"],
+    "tyler": ["security-high", "network-wireless", "applications-engineering"],
     "homelab": ["network-server", "server-database", "applications-system"],
     "programming": ["utilities-terminal", "text-x-script", "applications-development"],
 }
@@ -239,7 +240,7 @@ class Extras(QWidget):
 
         modes = QHBoxLayout()
         modes.setSpacing(14)
-        self.mode_full = ModeCard("FULL", "Everything below: apps, app store, network and dev tools, homelab, office, Claude and NULL // PLAY.", ["null-os", "starred"])
+        self.mode_full = ModeCard("FULL", "Everything below: apps, app store, network and dev tools, homelab, office, Claude, NULL // PLAY and Tactical.", ["null-os", "starred"])
         self.mode_pick = ModeCard("PICK APPS", "Choose just the groups you want. Add the rest any time from this app.", ["checkbox", "view-list-details"])
         self.mode_full.clicked.connect(lambda: self._set_mode("full"))
         self.mode_pick.clicked.connect(lambda: self._set_mode("pick"))

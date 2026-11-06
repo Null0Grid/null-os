@@ -83,7 +83,7 @@ Two ISOs per release: `-amd64.iso` for normal PCs and `-arm64.iso` for ARM64 mac
 
 ## Minimal or Full
 
-Null OS installs Minimal by default: just the Null OS desktop. Tick **Null OS Full** on the installer's **Apps** page (or parts of it) to download, during install: VLC, Gwenview, Okular, Discover + Flathub, VSCodium, Remmina (RDP/VNC), the network toolkit (Wireshark, nmap...), the ufw firewall, LibreOffice, Docker + Podman, QEMU/KVM, VirtualBox, VS Code, Claude Desktop + Claude Code, NULL // PLAY, homelab tools (Ansible, kubectl, Terraform) and programming tools. Add any of them later with **Null OS Extras** in the start menu, or `null-extras install <group>` (`null-extras list` shows the groups).
+Null OS installs Minimal by default: just the Null OS desktop. Tick **Null OS Full** on the installer's **Apps** page (or parts of it) to download, during install: VLC, Gwenview, Okular, Discover + Flathub, VSCodium, Remmina (RDP/VNC), the network toolkit (Wireshark, nmap...), the ufw firewall, LibreOffice, Docker + Podman, QEMU/KVM, VirtualBox, VS Code, Claude Desktop + Claude Code, NULL // PLAY, Tactical (Tor Browser and privacy tools plus OSINT: recon-ng, Sherlock, dnsrecon, dnstwist and more), homelab tools (Ansible, kubectl, Terraform) and programming tools. Add any of them later with **Null OS Extras** in the start menu, or `null-extras install <group>` (`null-extras list` shows the groups).
 
 ## Gamer Mode (optional)
 

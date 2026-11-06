@@ -19,6 +19,7 @@ Shots taken:
   05f2-extras-installing  the app installing Homelab, Network, Firewall
   05f3-extras-done    the app's summary
   05g-extras-homelab  homelab, network and firewall groups installed from the internet
+  05h-extras-tyler    Tyler field build (privacy + OSINT + SDR/radio + hardware) installed
   06b-lock-screen     lock screen (Super+L)
   06c-unlocked        unlocked again with the live password
   06-root             root prompt (red frame)
@@ -256,6 +257,12 @@ def main():
                   "terraform -version | head -n 1; nmap --version | head -n 1; sudo ufw status | head -n 1; null-extras list\n")
         time.sleep(8)
         shot("05g-extras-homelab")
+        # Tyler: the field build (privacy + OSINT + SDR/radio + hardware bench) in one group
+        type_text("clear; sudo null-extras install tyler > /tmp/ty.log 2>&1; tail -n 1 /tmp/ty.log; "
+                  "command -v torbrowser-launcher proxychains4 recon-ng meshtastic rtl_test gqrx chirp sigrok-cli openocd gpsd nfc-list binwalk | wc -l; "
+                  "id | tr ',' '\\n' | grep -E 'debian-tor|dialout|plugdev'; null-extras list | grep -E 'null-play|tyler'\n")
+        time.sleep(300)
+        shot("05h-extras-tyler")
         type_text("sudo -i\n")
         time.sleep(3)
         shot("06-root")
